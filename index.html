@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>siRNA Knockdown Efficiency Analyzer</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="xlsx.full.min.js"></script>
+  <style>
+      :root{--bg:#f0f4f8;--surface:#fff;--border:#d0d7e3;--primary:#1e4d8c;--primary-lt:#e8eef7;--primary-dk:#163a6b;--text:#1a2b3c;--muted:#6b7a8d;--r:8px;--sh:0 2px 8px rgba(0,0,0,.08)}
+    *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+      header{background:var(--primary);color:#fff;padding:14px 22px 10px;box-shadow:0 2px 10px rgba(0,0,0,.22)}
+      header h1{font-size:1.55rem;font-weight:700}
+      header p{font-size:.82rem;opacity:.78;margin-top:4px}
+      .container{max-width:1360px;margin:14px auto;padding:0 14px 60px}
+      .copyright{position:fixed;bottom:0;left:0;width:100%;text-align:center;color:var(--muted);font-size:.74rem;padding:6px 0 8px;background:var(--bg);border-top:1px solid var(--border);z-index:100}
+      .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);
+        padding:18px 20px;margin-bottom:14px}
+      .card h2{font-size:.95rem;color:var(--primary);margin-bottom:12px;
+       border-left:3px solid var(--primary);padding-left:9px}
+    .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    @media(max-width:700px){.upload-grid{grid-template-columns:1fr}}
+    .upload-zone{border:1px dashed #b7c6dd;border-radius:var(--r);padding:24px 14px;
+           text-align:center;cursor:pointer;transition:all .2s;background:#f7f9fc;
+                 position:relative;min-height:130px;display:flex;flex-direction:column;
+                 align-items:center;justify-content:center;gap:6px}
+    .upload-zone:hover,.upload-zone.drag-over{background:var(--primary-lt);border-color:var(--primary)}
+    .upload-zone.done{border-color:#34a853;background:#f0faf2}
+    .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .uz-icon{font-size:2.2rem}
+    .uz-title{font-weight:700;font-size:.9rem;color:var(--primary)}
+    .upload-zone.done .uz-title{color:#34a853}
+    .upload-zone small{color:#888;font-size:.78rem}
+    .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+        button{padding:8px 16px;border:none;border-radius:var(--r);cursor:pointer;
+          font-size:.84rem;font-weight:700;transition:all .15s}
+        .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dk)}
+    .btn-success{background:#34a853;color:white}.btn-success:hover{background:#2d8e47}
+        .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--primary-lt)}
+    .btn-warn{background:#f57c00;color:white}.btn-warn:hover{background:#e65100}
+    .alert{padding:10px 13px;border-radius:var(--r);font-size:.8rem;margin-bottom:9px;line-height:1.6}
+    .alert-info   {background:#e8eef7;color:var(--primary-dk);border-left:3px solid var(--primary)}
+    .alert-success{background:#e8f5e9;color:#1b5e20;border-left:4px solid #34a853}
+    .alert-error  {background:#fce8e6;color:#b71c1c;border-left:4px solid #ea4335}
+    .alert-warning{background:#fff8e1;color:#e65100;border-left:4px solid #ffa000}
+    .tab-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;box-shadow:var(--sh)}
+    .tab-btn{padding:7px 14px;border:1px solid transparent;background:transparent;cursor:pointer;
+         font-size:.82rem;color:var(--muted);border-radius:6px;font-weight:600;transition:all .13s}
+    .tab-btn.active{color:var(--primary);background:var(--primary-lt);border-color:#c8d7f0;font-weight:700}
+    .tab-btn:hover:not(.active){color:var(--primary-dk);background:#f7f9fc}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    .hidden{display:none}
+    .tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
+     table{width:100%;border-collapse:collapse;font-size:.8rem}
+     thead tr{background:#edf1f7;position:sticky;top:0;z-index:1}
+     th{padding:8px 10px;border:1px solid #d0d8e8;text-align:center;
+       font-weight:700;white-space:nowrap}
+     td{padding:6px 9px;border:1px solid #e6eaf3;text-align:center;white-space:nowrap}
+     tbody tr:nth-child(even){background:#f7f9fc}
+     tbody tr:hover{background:#eff3fa}
+    td.skipped{color:#bbb;font-style:italic}
+        .steps{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+        .step{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f3f6fb;
+          flex:1;min-width:140px;border:1px solid var(--border);transition:all .2s;border-radius:var(--r)}
+    .step:first-child{border-radius:var(--r)}
+    .step:last-child{border-radius:var(--r)}
+        .step.active{background:var(--primary);color:white;border-color:var(--primary)}
+    .step.done{background:#34a853;color:white}
+    .step-num{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.3);
+              display:flex;align-items:center;justify-content:center;
+              font-weight:700;font-size:.8rem;flex-shrink:0}
+    .step:not(.active):not(.done) .step-num{background:#d3d9e6;color:#586578}
+    .step-label{font-size:.82rem;font-weight:600}
+    .col-mapper{background:#f7f9fc;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-top:10px}
+    .col-mapper h3{font-size:.84rem;font-weight:700;margin-bottom:8px;color:var(--primary)}
+    .mapper-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .mapper-item{display:flex;flex-direction:column;gap:5px}
+    .mapper-item label{font-size:.76rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+    .mapper-item select{padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--surface);color:var(--text)}
+    .badge-auto  {background:#e8eef7;color:var(--primary);font-size:.66rem;padding:1px 6px;border-radius:10px;font-weight:700}
+    .badge-manual{background:#fff8e1;color:#e65100;font-size:.68rem;padding:1px 6px;border-radius:10px;font-weight:700}
+    .ntc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:8px}
+    .ntc-item{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);
+          border-radius:6px;cursor:pointer;transition:all .15s;font-size:.82rem;background:#fff}
+    .ntc-item:hover{background:#e8eef7;border-color:var(--primary)}
+    .ntc-item.selected{background:#e8eef7;border-color:var(--primary);font-weight:600;color:var(--primary)}
+    .omit-item{align-items:flex-start;line-height:1.35}
+    .omit-item.selected{background:#fce8e6;border-color:#ea4335;font-weight:600;color:#b71c1c}
+    .omit-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+    .omit-toolbar input{min-width:220px;max-width:360px;flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;background:#fff}
+    .omit-meta{font-size:.78rem;color:#6b7a8d}
+    .summary-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+    .s-card{border-radius:var(--r);padding:12px 14px;background:#f7f9fc;border:1px solid var(--border)}
+    .s-card .s-num{font-size:1.6rem;font-weight:700;color:var(--primary)}
+    .s-card .s-lbl{font-size:.78rem;color:#777;margin-top:2px}
+    .kd-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:.78rem;font-weight:700}
+    .kd-high{background:#c8e6c9;color:#1b5e20}
+    .kd-mid{background:#fff9c4;color:#f57f17}
+    .kd-low{background:#ffcdd2;color:#b71c1c}
+    .kd-over{background:#dbeafe;color:#1d4ed8}
+    .progress-bar{height:6px;background:#e0e0e0;border-radius:3px;margin-top:4px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:3px;transition:width .3s}
+    .formula-box{background:#f7f9fc;border:1px dashed #cbd4e3;border-radius:var(--r);
+           padding:12px 15px;font-size:.8rem;color:#4d5d70;line-height:2}
+    .formula-box code{background:#e8eef7;color:var(--primary);padding:1px 6px;border-radius:4px;
+                      font-family:monospace;font-size:.82rem}
+    .cfg-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px}
+    .cfg-item{display:flex;flex-direction:column;gap:5px;min-width:200px}
+    .cfg-item label{font-size:.78rem;font-weight:600;color:#425466}
+    .cfg-item input,.cfg-item select{padding:6px 10px;border:1px solid var(--border);
+                      border-radius:6px;font-size:.84rem;background:var(--surface);color:var(--text)}
+
+    /* ── Header override box ── */
+    .hdr-override{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+            background:#fff8e1;border:1px solid #f0c36d;border-radius:var(--r);
+                  padding:10px 14px;margin-top:10px}
+    .hdr-override label{font-size:.82rem;font-weight:700;color:#e65100;white-space:nowrap}
+    .hdr-override input{width:70px;padding:5px 8px;border:1px solid #ffa000;
+                         border-radius:6px;font-size:.88rem;text-align:center}
+    .hdr-override small{color:#888;font-size:.78rem}
+    .hdr-override button{padding:5px 14px;font-size:.82rem}
+
+    /* ── Raw scan table ── */
+    .scan-box{background:#f7f9fc;border:1px solid var(--border);border-radius:var(--r);
+              padding:10px 14px;margin-top:10px;font-size:.8rem}
+    .scan-box table td{font-size:.75rem;padding:3px 8px;border:1px solid #eee}
+    .scan-box .row-highlight{background:#fff9c4 !important}
+
+    .quick-start{background:#f7f9fc;border:1px solid var(--border);border-radius:var(--r);
+                 padding:14px 16px;margin:-4px 0 16px 0}
+    .quick-start h3{font-size:.88rem;color:var(--primary);margin-bottom:8px}
+    .quick-start ul{padding-left:18px;line-height:1.75;color:#4d5d70}
+    .quick-start li{font-size:.83rem}
+    .quick-start code{background:#e8eef7;color:var(--primary);padding:1px 5px;border-radius:4px}
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>siRNA Knockdown Efficiency Analyzer</h1>
+  <p>Layout + Raw Data → Merge → 2⁻ΔΔCt → Knockdown Efficiency</p>
+</header>
+
+<div class="container">
+
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Upload Files</div></div>
+    <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Map Columns</div></div>
+    <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Configure</div></div>
+    <div class="step" id="step4"><div class="step-num">4</div><div class="step-label">Results & Figures</div></div>
+  </div>
+
+  <div class="quick-start">
+    <h3>Quick Start</h3>
+    <ul>
+      <li>Upload both files first: Layout CSV and Result Excel (preferably with a <code>Results</code> sheet).</li>
+      <li>Confirm column mapping before analysis; ensure <code>Well</code>, <code>siRNA</code>, <code>Primer</code>, and <code>CT value</code> are correctly mapped.</li>
+      <li>Set reference gene (for example <code>GAPDH</code>) and select NTC conditions, then run analysis.</li>
+    </ul>
+  </div>
+
+  <!-- ═══ CARD 1 · Upload ═══ -->
+  <div class="card" id="card1">
+    <h2>Upload Files</h2>
+    <div class="upload-grid">
+
+      <div>
+        <p style="font-weight:700;margin-bottom:8px">📋 Layout File <span style="font-weight:400;color:#888">(CSV)</span></p>
+        <div class="upload-zone" id="zoneLayout">
+          <input type="file" id="fileLayout" accept=".csv" onchange="handleLayout(event)"/>
+          <div class="uz-icon">📋</div>
+          <div class="uz-title">Click or drag Layout CSV here</div>
+          <small>Required columns: Well · siRNA · Primer</small>
+        </div>
+        <div id="layoutStatus" class="hidden" style="margin-top:8px"></div>
+      </div>
+
+      <div>
+        <p style="font-weight:700;margin-bottom:8px">📊 Result File <span style="font-weight:400;color:#888">(Excel .xlsx)</span></p>
+        <div class="upload-zone" id="zoneResult">
+          <input type="file" id="fileResult" accept=".xlsx,.xls" onchange="handleResult(event)"/>
+          <div class="uz-icon">📊</div>
+          <div class="uz-title">Click or drag Result Excel here</div>
+          <small>Prefer sheet "Results" · key columns include Well Position + CT value</small>
+        </div>
+        <div id="resultStatus" class="hidden" style="margin-top:8px"></div>
+
+
+      </div>
+
+    </div>
+    <div id="uploadMergeStatus" class="hidden" style="margin-top:12px"></div>
+  </div>
+
+  <!-- ═══ CARD 2 · Column Mapper ═══ -->
+  <div class="card hidden" id="card2">
+    <h2>Confirm Column Mapping</h2>
+    <div class="alert alert-info" id="colMapInfo"></div>
+
+    <!-- Manual header row override -->
+    <div class="hdr-override" id="hdrOverrideBox" style="display:none">
+      <label>⚠️ Header row not detected correctly?</label>
+      <input type="number" id="hdrRowInput" min="1" placeholder="e.g. 47"/>
+      <button class="btn-warn" onclick="applyManualHeader()">Apply</button>
+      <small>Enter the exact row number (1-based) where the column headers are</small>
+    </div>
+
+    <div class="btn-row" style="margin-top:10px;margin-bottom:10px">
+      <button class="btn-secondary" id="toggleMapOptsBtn" onclick="toggleMappingOptions()">▼ Show Mapping Options</button>
+    </div>
+
+    <div id="mappingOptionsWrap" class="hidden">
+
+    <!-- Result scan: show rows around detected header -->
+    <div class="scan-box" id="scanBox">
+      <strong style="font-size:.82rem">🔍 Rows around detected header (Result file)</strong>
+      <div id="scanPreview" style="margin-top:6px;overflow-x:auto"></div>
+    </div>
+
+    <div class="col-mapper" style="margin-top:14px">
+      <h3>📊 Result File — Column Mapping</h3>
+      <div class="mapper-grid" id="resultMapperGrid"></div>
+    </div>
+
+    <div class="col-mapper" style="margin-top:12px">
+      <h3>📋 Layout File — Column Mapping</h3>
+      <div class="mapper-grid" id="layoutMapperGrid"></div>
+    </div>
+
+    <div style="margin-top:16px">
+      <div class="tab-bar" id="prevTabBar">
+        <button class="tab-btn active" onclick="switchPrevTab('pResult',this)">Result — All Data Rows</button>
+        <button class="tab-btn" onclick="switchPrevTab('pLayout',this)">Layout — All Data Rows</button>
+        <button class="tab-btn" onclick="switchPrevTab('pMerged',this)">Merged Preview</button>
+      </div>
+      <div class="tab-panel active" id="pResult"></div>
+      <div class="tab-panel"        id="pLayout"></div>
+      <div class="tab-panel"        id="pMerged"></div>
+    </div>
+
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="confirmMapping()">✅ Confirm &amp; Continue</button>
+    </div>
+  </div>
+
+  <!-- ═══ CARD 3 · Configure ═══ -->
+  <div class="card hidden" id="card3">
+    <h2>Configure Analysis</h2>
+    <div class="alert alert-info" id="cfgAutoMsg"></div>
+    <div class="cfg-row">
+      <div class="cfg-item">
+        <label>Reference Gene (Housekeeping)</label>
+        <input type="text" id="cfgRefGene" placeholder="e.g. GAPDH"/>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">
+        NTC siRNA conditions <span style="font-weight:400;color:#888">— baseline for ΔΔCt</span>
+      </label>
+      <div class="ntc-grid" id="ntcGrid"></div>
+    </div>
+    <div style="margin-top:16px">
+      <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">
+        Omit Data Points <span style="font-weight:400;color:#888">— 勾选后会从计算中排除该 well</span>
+      </label>
+      <div class="omit-toolbar">
+        <input type="text" id="omitSearch" placeholder="Search by well / siRNA / primer / Ct" oninput="filterOmitList()"/>
+        <button class="btn-secondary" type="button" onclick="selectVisibleOmit(true)">Select Visible</button>
+        <button class="btn-secondary" type="button" onclick="selectVisibleOmit(false)">Clear Visible</button>
+        <span class="omit-meta" id="omitMeta"></span>
+      </div>
+      <div class="ntc-grid" id="omitGrid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-success" onclick="runAnalysis()">🚀 Run Analysis</button>
+    </div>
+  </div>
+
+  <!-- ═══ CARD 4 · Results ═══ -->
+  <div class="card hidden" id="card4">
+    <h2>Knockdown Results</h2>
+    <div class="summary-cards" id="summaryCards"></div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchResTab('tabKD',this)">📋 KD Summary</button>
+      <button class="tab-btn" onclick="switchResTab('tabDetail',this)">🔢 ΔCt / ΔΔCt Detail</button>
+      <button class="tab-btn" onclick="switchResTab('tabMethod',this)">📐 Method (NTC = 100%)</button>
+    </div>
+    <div class="tab-panel active" id="tabKD">
+      <div class="tbl-wrap"><table id="kdTable"></table></div>
+    </div>
+    <div class="tab-panel" id="tabDetail">
+      <div class="col-mapper" style="margin-bottom:10px;padding:10px 12px">
+        <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:end">
+          <div class="mapper-item">
+            <label>Search</label>
+            <input type="text" id="detailSearch" placeholder="treatment / primer / value" oninput="refreshDetailTable()"/>
+          </div>
+          <div class="mapper-item">
+            <label>Row Type</label>
+            <select id="detailRowType" onchange="refreshDetailTable()">
+              <option value="all">all</option>
+            </select>
+          </div>
+          <div class="mapper-item">
+            <label>Sort By</label>
+            <select id="detailSortCol" onchange="refreshDetailTable()"></select>
+          </div>
+          <div class="mapper-item">
+            <label>Direction</label>
+            <select id="detailSortDir" onchange="refreshDetailTable()">
+              <option value="asc">asc</option>
+              <option value="desc">desc</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" type="button" onclick="resetDetailView()">Reset Filters</button>
+          <span id="detailCount" style="font-size:.8rem;color:#6b7a8d"></span>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="detailTable"></table></div>
+    </div>
+    <div class="tab-panel" id="tabMethod">
+      <div class="formula-box">
+        <strong>2⁻ΔΔCt Method (Livak &amp; Schmittgen, 2001)</strong><br><br>
+        <strong>Step 1 – Average technical duplicates (2 wells → 1 bio-rep):</strong><br>
+        <code>mean_Ct = (Ct_rep1 + Ct_rep2) / 2</code><br>
+        <strong>Step 2 – ΔCt per bio-rep:</strong><br>
+        <code>ΔCt = mean_Ct(target) − mean_Ct(reference gene)</code><br>
+        <strong>Step 3 – NTC baseline ΔCt (pool all NTC bio-reps per primer):</strong><br>
+        <code>mean_ΔCt_NTC = mean of all NTC ΔCt values for that primer</code><br>
+        <strong>Step 4 – ΔΔCt:</strong><br>
+        <code>ΔΔCt = ΔCt(siRNA) − mean_ΔCt_NTC</code><br>
+        <strong>Step 5 – Relative expression &amp; KD%:</strong><br>
+        <code>Rel. Exp. = 2^(−ΔΔCt)</code><br>
+        <code>KD% = (1 − Rel. Exp.) × 100</code><br><br>
+        <em>Mean ± SE reported across biological replicates (NTC-mix1/2/3/4).</em>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-secondary" onclick="downloadKDcsv()">⬇️ KD Summary CSV</button>
+      <button class="btn-secondary" onclick="downloadDetailCsv()">⬇️ Full Detail CSV</button>
+    </div>
+  </div>
+
+  <!-- ═══ CARD 5 · Figures ═══ -->
+  <div class="card hidden" id="card5">
+    <h2>Figures</h2>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchFigTab('figBar',this)">📊 KD Bar Chart</button>
+      <button class="tab-btn" onclick="switchFigTab('figDot',this)">⬤ Dot + Replicates</button>
+      <button class="tab-btn" onclick="switchFigTab('figRel',this)">📈 Expression (% of NTC)</button>
+    </div>
+    <div class="tab-panel active" id="figBar">
+      <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
+        <button class="btn-secondary" id="ntcToggleBtn" onclick="toggleNTC()">Show NTC</button>
+        <button class="btn-secondary" onclick="downloadFig('plotBar','KD_BarChart')">Download Figure</button>
+      </div>
+      <div style="position:relative;width:100%;padding-bottom:56.25%">
+        <div id="plotBar" style="position:absolute;inset:0"></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="figDot">
+      <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
+        <button class="btn-secondary" onclick="toggleNTC()">Show NTC</button>
+        <button class="btn-secondary" onclick="downloadFig('plotDot','Dot_Replicates')">Download Figure</button>
+      </div>
+      <div style="position:relative;width:100%;padding-bottom:56.25%">
+        <div id="plotDot" style="position:absolute;inset:0"></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="figRel">
+      <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
+        <button class="btn-secondary" onclick="toggleNTC()">Show NTC</button>
+        <button class="btn-secondary" onclick="downloadFig('plotRel','Expression_NTC')">Download Figure</button>
+      </div>
+      <div style="position:relative;width:100%;padding-bottom:56.25%">
+        <div id="plotRel" style="position:absolute;inset:0"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   GLOBAL STATE
+═══════════════════════════════════════════════════════ */
+let layoutAoa      = null;
+let resultAoa      = null;
+let resultHdrIdx   = -1;
+let layoutHdrIdx   = -1;
+let mergedRows     = [];
+let analysisResult = null;
+let resultFileStem = '';
+let showNTC        = false;
+let detailViewState = {search:'',rowType:'all',sortCol:'',sortDir:'asc'};
+
+/* ═══════════════════════════════════════════════════════
+   DRAG & DROP
+═══════════════════════════════════════════════════════ */
+setupDrop('zoneLayout', f => handleLayoutFile(f));
+setupDrop('zoneResult', f => handleResultFile(f));
+function setupDrop(id, cb){
+  const z = document.getElementById(id);
+  z.addEventListener('dragover',  e => { e.preventDefault(); z.classList.add('drag-over'); });
+  z.addEventListener('dragleave', ()  => z.classList.remove('drag-over'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('drag-over');
+    if(e.dataTransfer.files[0]) cb(e.dataTransfer.files[0]);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   FILE READERS
+═══════════════════════════════════════════════════════ */
+function handleLayout(e){ if(e.target.files[0]) handleLayoutFile(e.target.files[0]); }
+function handleResult(e){ if(e.target.files[0]) handleResultFile(e.target.files[0]); }
+
+function normalizeHdrKey(v){
+  return String(v || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_\-().:]/g, '');
+}
+
+function isCtNumber(v){
+  if(v === '' || v === null || v === undefined) return false;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 && n < 60;
+}
+
+function chooseBestResultSheet(wb){
+  const names = wb.SheetNames || [];
+  if(!names.length) return null;
+
+  let bestName = names[0];
+  let bestScore = -1;
+
+  for(const name of names){
+    const ws = wb.Sheets[name];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    const nonEmptyRows = aoa.filter(r => r.some(c => String(c).trim() !== ''));
+    if(!nonEmptyRows.length) continue;
+
+    const topRows = nonEmptyRows.slice(0, 60);
+    let score = 0;
+
+    const nKey = normalizeHdrKey(name);
+    if(/results?|resulttable|rawdata|quant/.test(nKey)) score += 20;
+
+    for(const row of topRows){
+      const keys = row.map(normalizeHdrKey);
+      if(keys.some(k => /^(well|wellpos|wellposition)$/.test(k))) score += 8;
+      if(keys.some(k => /^(ct|cq|ctvalue|cqvalue|ctmean|cqmean)$/.test(k))) score += 8;
+      if(keys.some(k => /(target|gene|primer|sirna|sample)/.test(k))) score += 2;
+    }
+
+    const numericLike = topRows
+      .flat()
+      .filter(c => isCtNumber(c)).length;
+    score += Math.min(12, numericLike / 8);
+
+    if(score > bestScore){
+      bestScore = score;
+      bestName = name;
+    }
+  }
+
+  return bestName;
+}
+
+function trimAoa(aoa){
+  const rows = (aoa || []).map(r => Array.isArray(r) ? r : []);
+  const nonEmptyRows = rows.filter(r => r.some(c => String(c).trim() !== ''));
+  if(!nonEmptyRows.length) return [];
+  let maxCol = 0;
+  for(const row of nonEmptyRows){
+    for(let i = row.length - 1; i >= 0; i--){
+      if(String(row[i]).trim() !== ''){
+        maxCol = Math.max(maxCol, i + 1);
+        break;
+      }
+    }
+  }
+  return nonEmptyRows.map(r => {
+    const out = r.slice(0, maxCol);
+    while(out.length < maxCol) out.push('');
+    return out;
+  });
+}
+
+function handleLayoutFile(file){
+  showStatus('layoutStatus','info',`Reading ${file.name} …`);
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const lines = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+      layoutAoa    = lines.map(l => splitCSV(l));
+      layoutHdrIdx = detectLayoutHeader(layoutAoa);
+      markZoneDone('zoneLayout', `✅ ${file.name}`);
+      showStatus('layoutStatus','success',
+        `✅ ${file.name} · ${layoutAoa.length} rows · header at row ${layoutHdrIdx+1}`);
+      tryShowMapper();
+    } catch(err){ showStatus('layoutStatus','error','❌ '+err.message); }
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function handleResultFile(file){
+  resultFileStem = file.name.replace(/\.[^.]+$/,'');
+  showStatus('resultStatus','info',`Reading ${file.name} …`);
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+      const sheetName = chooseBestResultSheet(wb) || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      resultAoa = trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''}));
+
+      resultHdrIdx = detectResultHeader(resultAoa);
+
+      markZoneDone('zoneResult', `✅ ${file.name}`);
+      const detected = resultHdrIdx >= 0
+        ? `Header auto-detected at row <strong>${resultHdrIdx+1}</strong>`
+        : `<span style="color:#b71c1c">Header NOT detected — please use manual override</span>`;
+      showStatus('resultStatus', resultHdrIdx>=0 ? 'success' : 'warning',
+        `✅ Sheet "${sheetName}" · ${resultAoa.length} total rows · ${detected}`);
+
+      // Always show override box so user can correct if needed
+      document.getElementById('hdrOverrideBox').style.display = 'flex';
+      if(resultHdrIdx >= 0)
+        document.getElementById('hdrRowInput').value = resultHdrIdx + 1;
+
+      tryShowMapper();
+    } catch(err){ showStatus('resultStatus','error','❌ '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MANUAL HEADER OVERRIDE
+═══════════════════════════════════════════════════════ */
+function applyManualHeader(){
+  const val = parseInt(document.getElementById('hdrRowInput').value);
+  if(isNaN(val) || val < 1 || val > resultAoa.length){
+    alert(`Please enter a row number between 1 and ${resultAoa.length}`); return;
+  }
+  resultHdrIdx = val - 1;   // convert to 0-based
+  showStatus('resultStatus','success',
+    `✅ Header manually set to row <strong>${val}</strong> · `+
+    `Columns: ${resultAoa[resultHdrIdx].filter(c=>String(c).trim()).join(' | ')}`);
+  tryShowMapper();
+}
+
+/* ═══════════════════════════════════════════════════════
+   HEADER DETECTION
+   ─────────────────────────────────────────────────────
+   Result file strategy (strict — avoids metadata rows):
+   We look for a row that satisfies ALL of these:
+     1. At least one cell is EXACTLY "Well" (case-insensitive)
+     2. AND at least one cell matches CT pattern
+     3. AND the row has ≥ 3 non-empty cells
+   This prevents false matches on single-word metadata rows.
+
+   Layout file strategy:
+     Simple — first row where any cell is exactly "Well"
+═══════════════════════════════════════════════════════ */
+function detectResultHeader(aoa){
+  if(!aoa || !aoa.length) return -1;
+
+  const nonEmpty = row => row.filter(c => String(c).trim() !== '').length;
+  const limit = Math.min(aoa.length, 150);
+  let bestIdx = -1;
+  let bestScore = -1;
+
+  for(let i = 0; i < limit; i++){
+    const row = aoa[i] || [];
+    const n = nonEmpty(row);
+    if(n < 2) continue;
+
+    const keys = row.map(normalizeHdrKey);
+    let score = 0;
+
+    const hasWell        = keys.some(k => /^well$/.test(k));
+    const hasWellPos     = keys.some(k => /^(wellpos|wellposition)$/.test(k));
+    const hasCt          = keys.some(k => /^(ct|cq|ctvalue|cqvalue|ctmean|cqmean)$/.test(k));
+    const hasSampleName  = keys.some(k => /^(samplename|sample|sampleid)$/.test(k));
+    const hasTargetHints = keys.some(k => /(target|gene|primer|sirna|name)/.test(k));
+
+    if(hasWell)       score += 18;
+    if(hasWellPos)    score += 35;
+    if(hasCt)         score += 40;
+    if(hasSampleName) score += 18;
+    if(hasTargetHints)score += 8;
+
+    // Prefer rows that have a usable merge pair: Well Position (or Well) + CT
+    if(!(hasCt && (hasWellPos || hasWell))) score -= 25;
+
+    score += Math.min(15, n * 1.5);
+
+    // Strong signal: rows below this one contain Ct-like numeric values.
+    let ctLike = 0;
+    for(let r = i + 1; r <= Math.min(i + 12, aoa.length - 1); r++){
+      const probe = aoa[r] || [];
+      for(const cell of probe){
+        if(isCtNumber(cell)) ctLike++;
+      }
+    }
+    score += Math.min(25, ctLike / 2);
+
+    // Penalize obvious metadata rows.
+    if(keys.some(k => /(instrument|software|report|analysis|operator|date)/.test(k))) score -= 20;
+
+    if(score > bestScore){
+      bestScore = score;
+      bestIdx = i;
+    }
+  }
+
+  return bestIdx;
+}
+
+function detectLayoutHeader(aoa){
+  /* Layout header: first row where any cell is exactly "Well" */
+  for(let i = 0; i < aoa.length; i++){
+    if(aoa[i].some(c => /^well$/i.test(String(c).trim()))) return i;
+  }
+  /* Fallback: partial match */
+  for(let i = 0; i < aoa.length; i++){
+    if(aoa[i].some(c => /well/i.test(String(c)))) return i;
+  }
+  return 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   COLUMN AUTO-GUESS
+═══════════════════════════════════════════════════════ */
+function guessCol(labels, exactPatterns, partialPatterns){
+  for(const pat of exactPatterns){
+    const re = new RegExp(pat, 'i');
+    const i  = labels.findIndex(h => re.test(normalizeHdrKey(h)));
+    if(i >= 0) return i;
+  }
+  for(const pat of partialPatterns){
+    const p = normalizeHdrKey(pat);
+    const i = labels.findIndex(h => normalizeHdrKey(h).includes(p));
+    if(i >= 0) return i;
+  }
+  return 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BUILD MAPPER UI
+═══════════════════════════════════════════════════════ */
+function tryShowMapper(){
+  if(!layoutAoa || !resultAoa || resultHdrIdx < 0) return;
+
+  /* Result columns */
+  const rHdrCells = resultAoa[resultHdrIdx].map((c,i) => String(c).trim() || `col${i+1}`);
+  const rWellPos = guessCol(rHdrCells, ['^wellposition$','^wellpos$','^well$'], ['wellposition','well pos','well']);
+  const rCt   = guessCol(rHdrCells, ['^ct$','^cq$','^ctvalue','^cqvalue'], ['ct','cq','threshold','cycle']);
+
+  /* Layout columns */
+  const lHdrCells = layoutAoa[layoutHdrIdx].map((c,i) => String(c).trim() || `col${i+1}`);
+  const lWell  = guessCol(lHdrCells, ['^well$'], ['well']);
+  const lSiRNA = guessCol(lHdrCells, ['^sirna$'], ['sirna','si rna','treatment']);
+  const lPrimer= guessCol(lHdrCells, ['^primer$','^gene$'], ['primer','gene','target']);
+
+  buildMapper('resultMapperGrid',[
+    {id:'rmap_well', label:'Well Position', guess:rWellPos},
+    {id:'rmap_ct',   label:'CT',             guess:rCt}
+  ], rHdrCells);
+
+  buildMapper('layoutMapperGrid',[
+    {id:'lmap_well',   label:'Well',                                             guess:lWell},
+    {id:'lmap_sirna',  label:'Sample name',         guess:lSiRNA},
+    {id:'lmap_primer', label:'Primer/Target',                                   guess:lPrimer}
+  ], lHdrCells);
+
+  /* Scan box: show ±5 rows around detected header so user can verify */
+  buildScanPreview(resultHdrIdx, rHdrCells);
+
+  /* Info banner */
+  document.getElementById('colMapInfo').innerHTML =
+    `Result header detected at row <strong>${resultHdrIdx+1}</strong>. `+
+    `If this is wrong, use the <em>manual override</em> box in the upload section and click Apply.`;
+
+  /* Full previews */
+  buildFullPreview('pResult', resultAoa, resultHdrIdx, rHdrCells, 'Result File');
+  buildFullPreview('pLayout', layoutAoa, layoutHdrIdx, lHdrCells, 'Layout File');
+
+  document.getElementById('card2').classList.remove('hidden');
+  document.getElementById('card2').scrollIntoView({behavior:'smooth'});
+  setStep(2);
+}
+
+function buildMapper(gridId, items, options){
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div'); div.className='mapper-item';
+    const noneOpt  = item.optional
+      ? `<option value="-1" ${item.guess===-1?'selected':''}>— (none / no tech-reps)</option>` : '';
+    const optLabel = item.optional
+      ? ` <span style="color:#888;font-size:.78rem">(optional)</span>` : '';
+    div.innerHTML = `
+      <label>${item.label}${optLabel} <span class="badge-auto">AUTO</span></label>
+      <select id="${item.id}">
+        ${noneOpt}
+        ${options.map((o,i)=>`<option value="${i}" ${(i===item.guess&&item.guess!==-1)?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+    grid.appendChild(div);
+  });
+}
+
+/* Show ±5 rows around detected header with highlight */
+function buildScanPreview(hdrIdx, hdrCells){
+  const from = Math.max(0, hdrIdx - 3);
+  const to   = Math.min(resultAoa.length - 1, hdrIdx + 5);
+  let html = `<table style="width:auto;font-size:.75rem"><thead><tr>
+    <th style="background:#555;color:white">Row #</th>
+    ${hdrCells.slice(0,10).map(h=>`<th>${h}</th>`).join('')}
+    </tr></thead><tbody>`;
+  for(let i = from; i <= to; i++){
+    const rowClass = i===hdrIdx ? 'row-highlight' : '';
+    const label    = i===hdrIdx ? `<strong>▶ ${i+1} (header)</strong>` : i+1;
+    html += `<tr class="${rowClass}"><td>${label}</td>`
+          + resultAoa[i].slice(0,10).map(c=>`<td>${String(c).trim()}</td>`).join('')
+          + '</tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('scanPreview').innerHTML = html;
+}
+
+function buildFullPreview(divId, aoa, hdrIdx, cols, title){
+  const dataRows = aoa.slice(hdrIdx+1).filter(r => r.some(c=>String(c).trim()!==''));
+  let html = `<p style="font-size:.78rem;color:#777;margin:6px 0">
+    <strong>${title}</strong> — ${dataRows.length} data rows</p>`;
+  html += '<div class="tbl-wrap"><table><thead><tr>'
+        + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+  dataRows.forEach(row => {
+    html += '<tr>' + cols.map((_,i)=>`<td>${row[i]!==undefined?row[i]:''}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById(divId).innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONFIRM MAPPING → LAYOUT-ANCHORED MERGE
+═══════════════════════════════════════════════════════ */
+function confirmMapping(){
+  const rWellCol  = +document.getElementById('rmap_well').value;
+  const rCtCol    = +document.getElementById('rmap_ct').value;
+  const lWellCol  = +document.getElementById('lmap_well').value;
+  const lSiRNACol = +document.getElementById('lmap_sirna').value;
+  const lPrimerCol= +document.getElementById('lmap_primer').value;
+
+  /* Build CT lookup from result (all data rows after header) */
+  const ctMap = {};
+  for(let i = resultHdrIdx+1; i < resultAoa.length; i++){
+    const row   = resultAoa[i];
+    const well  = normWell(String(row[rWellCol]||'').trim());
+    const ctRaw = String(row[rCtCol]||'').trim();
+    if(!well) continue;
+    ctMap[well] = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw))
+                  ? NaN : parseFloat(ctRaw);
+  }
+
+  /* Iterate layout as master */
+  mergedRows = [];
+  let totalLayout=0, activeCount=0, skippedCount=0, noCtCount=0;
+
+  for(let i = layoutHdrIdx+1; i < layoutAoa.length; i++){
+    const row    = layoutAoa[i];
+    const well   = normWell(String(row[lWellCol]||'').trim());
+    if(!well) continue;
+    totalLayout++;
+
+    const siRNA  = String(row[lSiRNACol] ||'').trim();
+    const primer = String(row[lPrimerCol]||'').trim();
+    const ct     = ctMap.hasOwnProperty(well) ? ctMap[well] : NaN;
+    const active = siRNA !== '' && primer !== '';
+
+    if(!active) skippedCount++;
+    else if(isNaN(ct)) noCtCount++;
+    else activeCount++;
+
+    mergedRows.push({well, siRNA, primer, ct, active});
+  }
+
+  /* Merged preview */
+  buildMergedPreview(totalLayout, activeCount, skippedCount, noCtCount);
+
+  showStatus('uploadMergeStatus','success',
+    `✅ Merge complete (layout-anchored) — `+
+    `${totalLayout} layout wells · `+
+    `<strong style="color:#34a853">${activeCount} active</strong> · `+
+    `<span style="color:#888">${skippedCount} skipped (no siRNA/primer)</span> · `+
+    `<span style="color:#ffa000">${noCtCount} undetermined CT</span>`);
+  document.getElementById('uploadMergeStatus').classList.remove('hidden');
+
+  showConfig();
+  setStep(3);
+}
+
+function buildMergedPreview(total, active, skipped, noCt){
+  const div = document.getElementById('pMerged');
+  let html = `<p style="font-size:.78rem;color:#777;margin:6px 0">
+    <strong>Merged (layout-anchored)</strong> — 
+    ${total} layout wells · 
+    <span style="color:#34a853;font-weight:700">${active} active</span> · 
+    <span style="color:#888">${skipped} skipped</span> · 
+    <span style="color:#ffa000">${noCt} undetermined CT</span></p>`;
+  html += '<div class="tbl-wrap"><table><thead><tr>'
+        + '<th>Well</th><th>siRNA</th><th>Primer</th><th>CT</th><th>Status</th>'
+        + '</tr></thead><tbody>';
+  mergedRows.forEach(r => {
+    let status, rowStyle='';
+    if(!r.active){
+      status   = `<td class="skipped">— not assigned</td>`;
+      rowStyle = 'color:#bbb';
+    } else if(isNaN(r.ct)){
+      status = `<td style="color:#ffa000">Undetermined</td>`;
+    } else {
+      status = `<td style="color:#34a853">✓</td>`;
+    }
+    html += `<tr style="${rowStyle}">
+      <td>${r.well}</td>
+      <td>${r.siRNA||'—'}</td>
+      <td>${r.primer||'—'}</td>
+      <td>${r.active&&!isNaN(r.ct) ? r.ct.toFixed(3) : (r.active?'Undet':'—')}</td>
+      ${status}
+    </tr>`;
+  });
+  div.innerHTML = html + '</tbody></table></div>';
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONFIGURE
+═══════════════════════════════════════════════════════ */
+function showConfig(){
+  document.getElementById('card3').classList.remove('hidden');
+  document.getElementById('card3').scrollIntoView({behavior:'smooth'});
+
+  const active     = mergedRows.filter(r => r.active && !isNaN(r.ct));
+  const primers    = [...new Set(active.map(r=>r.primer))];
+  const sampleNames= [...new Set(active.map(r=>r.siRNA))];
+  const treatments = [...new Set(sampleNames.map(treatmentOf))];
+
+  const refGuess = primers.find(p => /gadph|gapdh|actb|b2m|hprt/i.test(p)) || primers[0] || '';
+  document.getElementById('cfgRefGene').value = refGuess;
+
+  const ntcPatterns = ['ntc','negative control','scramble','mock','vehicle'];
+  const ntcAuto     = treatments.filter(t => ntcPatterns.some(p=>t.toLowerCase().includes(p)));
+
+  const grid = document.getElementById('ntcGrid');
+  grid.innerHTML = '';
+  [...treatments].sort().forEach(t => {
+    const isNTC = ntcAuto.includes(t);
+    const div   = document.createElement('div');
+    div.className = 'ntc-item'+(isNTC?' selected':'');
+    div.innerHTML = `
+      <input type="checkbox" id="ntc_${CSS.escape(t)}" value="${t}" ${isNTC?'checked':''}
+        onchange="this.closest('.ntc-item').classList.toggle('selected',this.checked)">
+      <label for="ntc_${CSS.escape(t)}" style="cursor:pointer">${t}</label>`;
+    grid.appendChild(div);
+  });
+
+  const omitGrid = document.getElementById('omitGrid');
+  omitGrid.innerHTML = '';
+  [...active]
+    .sort((a,b)=>a.siRNA.localeCompare(b.siRNA)||a.primer.localeCompare(b.primer)||a.well.localeCompare(b.well))
+    .forEach((r,idx) => {
+      const div = document.createElement('div');
+      div.className = 'ntc-item omit-item';
+      const searchKey = `${r.well} ${r.siRNA} ${r.primer} ${r.ct.toFixed(3)}`.toLowerCase();
+      div.dataset.search = searchKey;
+      const safeId = `omit_${idx}`;
+      div.innerHTML = `
+        <input type="checkbox" class="omit-chk" id="${safeId}" value="${r.well}"
+          onchange="toggleOmitItem(this)">
+        <label for="${safeId}" style="cursor:pointer">
+          <strong>${r.well}</strong> · ${r.siRNA} · ${r.primer}<br>
+          <span style="font-size:.76rem;color:#777">Ct ${r.ct.toFixed(3)}</span>
+        </label>`;
+      omitGrid.appendChild(div);
+    });
+  document.getElementById('omitSearch').value='';
+  filterOmitList();
+
+  document.getElementById('cfgAutoMsg').innerHTML =
+    `<strong>${primers.length}</strong> primers · `+
+    `<strong>${treatments.length}</strong> treatments · `+
+    `<strong>${sampleNames.length}</strong> unique sample names · `+
+    `<strong>${active.length}</strong> active wells · `+
+    `Auto-detected NTC: <strong>${ntcAuto.length ? ntcAuto.join(', ') : 'none — please select'}</strong>`;
+}
+
+function toggleOmitItem(chk){
+  chk.closest('.omit-item').classList.toggle('selected',chk.checked);
+  updateOmitMeta();
+}
+
+function filterOmitList(){
+  const kw = (document.getElementById('omitSearch').value || '').trim().toLowerCase();
+  const items = [...document.querySelectorAll('#omitGrid .omit-item')];
+  const hasKw = kw.length > 0;
+  items.forEach(item => {
+    const hit = hasKw && (item.dataset.search || '').includes(kw);
+    item.style.display = hit ? '' : 'none';
+  });
+  updateOmitMeta();
+}
+
+function selectVisibleOmit(checked){
+  const visibleChecks = [...document.querySelectorAll('#omitGrid .omit-item input.omit-chk')]
+    .filter(chk => chk.closest('.omit-item').style.display !== 'none');
+  visibleChecks.forEach(chk => {
+    chk.checked = checked;
+    chk.closest('.omit-item').classList.toggle('selected',checked);
+  });
+  updateOmitMeta();
+}
+
+function updateOmitMeta(){
+  const kw = (document.getElementById('omitSearch')?.value || '').trim();
+  const allItems = [...document.querySelectorAll('#omitGrid .omit-item')];
+  const visibleItems = allItems.filter(item => item.style.display !== 'none');
+  const selectedAll = document.querySelectorAll('#omitGrid input.omit-chk:checked').length;
+  const selectedVisible = visibleItems.filter(item => item.querySelector('input.omit-chk')?.checked).length;
+  const meta = document.getElementById('omitMeta');
+  if(!meta) return;
+  if(!kw){
+    meta.textContent = `${selectedAll} selected · type keyword to show matches`;
+    return;
+  }
+  meta.textContent = `${selectedAll} selected · ${selectedVisible}/${visibleItems.length} visible`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANALYSIS
+═══════════════════════════════════════════════════════ */
+function runAnalysis(){
+  const refGeneInput  = document.getElementById('cfgRefGene').value.trim();
+  const ntcTreatments = [...document.querySelectorAll('#ntcGrid input:checked')].map(c=>c.value);
+  const omittedWells  = new Set([...document.querySelectorAll('#omitGrid input.omit-chk:checked')].map(c=>c.value));
+  if(!refGeneInput)        { alert('Please enter the reference gene name.'); return; }
+  if(!ntcTreatments.length){ alert('Please select at least one NTC treatment.'); return; }
+
+  const refGeneLower = refGeneInput.toLowerCase();
+  const active = mergedRows.filter(r => r.active && !isNaN(r.ct) && !omittedWells.has(r.well));
+
+  /* Step 1 – Average tech-reps:
+     Same sample name (siRNA column) × same primer = technical replicates → average CT.
+     avgCt[sampleName][primer] = mean CT */
+  const techMap = {};
+  active.forEach(r => {
+    const k = r.siRNA + '\x00' + r.primer;
+    if(!techMap[k]) techMap[k] = {siRNA:r.siRNA, primer:r.primer, cts:[], wells:[]};
+    techMap[k].cts.push(r.ct);
+    techMap[k].wells.push(r.well);
+  });
+  const avgCt = {};
+  const avgWells = {};
+  Object.values(techMap).forEach(({siRNA, primer, cts}) => {
+    if(!avgCt[siRNA]) avgCt[siRNA] = {};
+    if(!avgWells[siRNA]) avgWells[siRNA] = {};
+    avgCt[siRNA][primer] = cts.reduce((a,b)=>a+b,0)/cts.length;
+    avgWells[siRNA][primer] = [...new Set((techMap[siRNA + '\x00' + primer]?.wells || []).filter(Boolean))].sort().join(';');
+  });
+
+  /* Step 2 – ΔCt per bio-rep (each unique sample name), ref-gene aligned by sample name */
+  const deltaCt = {};
+  Object.entries(avgCt).forEach(([siRNA, primers]) => {
+    const refKey = Object.keys(primers).find(p => p.toLowerCase()===refGeneLower);
+    if(!refKey) return;
+    const refCt = primers[refKey];
+    deltaCt[siRNA] = {};
+    Object.entries(primers).forEach(([primer, tgtCt]) => {
+      if(primer.toLowerCase()===refGeneLower) return;
+      deltaCt[siRNA][primer] = tgtCt - refCt;
+    });
+  });
+
+  /* Step 3 – NTC mean ΔCt per primer (pool all bio-reps belonging to NTC treatments) */
+  const ntcPool = {};
+  Object.entries(deltaCt).forEach(([siRNA, primers]) => {
+    if(!ntcTreatments.includes(treatmentOf(siRNA))) return;
+    Object.entries(primers).forEach(([primer, dct]) => {
+      if(!ntcPool[primer]) ntcPool[primer] = [];
+      ntcPool[primer].push(dct);
+    });
+  });
+  const ntcMean = {};
+  Object.entries(ntcPool).forEach(([p,vals]) => {
+    ntcMean[p] = vals.reduce((a,b)=>a+b,0)/vals.length;
+  });
+
+  /* Step 4 – ΔΔCt → relExp per bio-rep; group by treatment for mean/SE */
+  const allTreatments = [...new Set(Object.keys(deltaCt).map(treatmentOf))];
+  const nonNTC = allTreatments.filter(t => !ntcTreatments.includes(t)).sort();
+  const ntcOnly = allTreatments.filter(t =>  ntcTreatments.includes(t)).sort();
+  const kdResults = [], detailRows = [], ntcResults = [];
+
+  /* helper: compute stats for one treatment group */
+  function computeGroup(treatment, targetArr){
+    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
+    const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s])))];
+    primers.forEach(primer => {
+      const ntcRef = ntcMean[primer];
+      if(ntcRef===undefined) return;
+      const relExps = [];
+      bioReps.forEach(siRNA => {
+        const dct = deltaCt[siRNA]?.[primer];
+        if(dct===undefined) return;
+        relExps.push(Math.pow(2,-(dct - ntcRef)));
+      });
+      if(!relExps.length) return;
+      const meanRE = relExps.reduce((a,b)=>a+b,0)/relExps.length;
+      const seRE = relExps.length>1
+        ? Math.sqrt(relExps.reduce((s,v)=>s+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
+        : NaN;
+      targetArr.push({siRNA:treatment, primer, meanRE, seRE,
+        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+    });
+  }
+
+  nonNTC.forEach(t => {
+    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===t).sort();
+    const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s])))];
+    const addedRefRows = new Set();
+    primers.forEach(primer => {
+      const ntcRef = ntcMean[primer];
+      if(ntcRef===undefined) return;
+      const relExps = [];
+      bioReps.forEach(siRNA => {
+        const refKey = Object.keys(avgCt[siRNA]||{}).find(p=>p.toLowerCase()===refGeneLower);
+        if(refKey && !addedRefRows.has(siRNA)){
+          const refCt = avgCt[siRNA]?.[refKey];
+          detailRows.push({
+            row_type:       'reference_gene',
+            treatment:t,
+            bio_rep:        siRNA,
+            well:           avgWells[siRNA]?.[refKey] || 'N/A',
+            primer:         refKey,
+            reference_gene: refKey,
+            ct_ref_mean:    fmt(refCt),
+            ct_target_mean: fmt(refCt),
+            dct:            '0.000',
+            ntc_mean_dct:   '0.000',
+            ddct:           '0.000',
+            rel_exp:        '1.0000',
+            kd_pct:         '0.0'
+          });
+          addedRefRows.add(siRNA);
+        }
+        const dct = deltaCt[siRNA]?.[primer];
+        if(dct===undefined) return;
+        const ddct = dct - ntcRef, relExp = Math.pow(2,-ddct);
+        relExps.push(relExp);
+        detailRows.push({
+          row_type:       'target_gene',
+          treatment:t,
+          bio_rep:        siRNA,
+          well:           avgWells[siRNA]?.[primer] || 'N/A',
+          primer,
+          reference_gene: refKey || refGeneInput,
+          ct_ref_mean:    fmt(refKey ? avgCt[siRNA]?.[refKey] : undefined),
+          ct_target_mean: fmt(avgCt[siRNA]?.[primer]),
+          dct:            dct.toFixed(3),
+          ntc_mean_dct:   ntcRef.toFixed(3),
+          ddct:           ddct.toFixed(3),
+          rel_exp:        relExp.toFixed(4),
+          kd_pct:         ((1-relExp)*100).toFixed(1)
+        });
+      });
+      if(!relExps.length) return;
+      const meanRE = relExps.reduce((a,b)=>a+b,0)/relExps.length;
+      const seRE = relExps.length>1
+        ? Math.sqrt(relExps.reduce((s,v)=>s+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
+        : NaN;
+      kdResults.push({siRNA:t, primer, meanRE, seRE,
+        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+    });
+  });
+  ntcOnly.forEach(t => computeGroup(t, ntcResults));
+
+  if(!kdResults.length){ alert('No results. Check reference gene name and NTC selection.'); return; }
+
+  analysisResult={kdResults, ntcResults, detailRows, refGene:refGeneInput, ntcTreatments, omittedWells:[...omittedWells]};
+  renderKDTable(kdResults);
+  renderDetailTable(detailRows);
+  renderSummaryCards(kdResults);
+  renderCharts(kdResults);
+
+  document.getElementById('card4').classList.remove('hidden');
+  document.getElementById('card5').classList.remove('hidden');
+  setStep(4);
+  document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+}
+
+const fmt = v => (v===undefined||v===null||isNaN(v)) ? 'N/A' : Number(v).toFixed(3);
+
+/* ═══════════════════════════════════════════════════════
+   RENDER TABLES
+═══════════════════════════════════════════════════════ */
+function renderKDTable(kd){
+  const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  let html=`<thead><tr>
+    <th>siRNA</th><th>Target Primer</th><th>Expression (% of NTC)</th><th>SE (%)</th>
+    <th>KD Efficiency</th><th>KD ± SE (%)</th><th>N bio-reps</th><th>Grade</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(r => {
+    let grade,cls;
+    if(r.kd<0){grade='Overexpression';cls='kd-over';}
+    else if(r.kd>=70){grade='High ≥70%';cls='kd-high';}
+    else if(r.kd>=40){grade='Medium';cls='kd-mid';}
+    else{grade='Low <40%';cls='kd-low';}
+    const barW=Math.min(Math.max(r.kd,0),100).toFixed(0);
+    const barC=r.kd<0?'#1d4ed8':r.kd>=70?'#34a853':r.kd>=40?'#ffa000':'#ea4335';
+    const exprPct=r.meanRE*100;
+    const exprSePct=r.seRE*100;
+    const exprBarW=Math.min(Math.max(exprPct,0),100).toFixed(0);
+    const exprBarC=exprPct>100?'#1d4ed8':exprPct<=30?'#34a853':exprPct<=60?'#ffa000':'#ea4335';
+    html+=`<tr>
+      <td><strong>${r.siRNA}</strong></td><td>${r.primer}</td>
+      <td style="min-width:160px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="min-width:58px;font-weight:700">${exprPct.toFixed(2)}%</span>
+          <div class="progress-bar" style="flex:1">
+            <div class="progress-fill" style="width:${exprBarW}%;background:${exprBarC}"></div>
+          </div>
+        </div>
+      </td>
+      <td>${isNaN(exprSePct)?'N/A':exprSePct.toFixed(2)}</td>
+      <td style="min-width:160px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="min-width:52px;font-weight:700">${r.kd.toFixed(1)}%</span>
+          <div class="progress-bar" style="flex:1">
+            <div class="progress-fill" style="width:${barW}%;background:${barC}"></div>
+          </div>
+        </div>
+      </td>
+      <td>${r.kd.toFixed(1)} ± ${isNaN(r.kdSe)?'N/A':r.kdSe.toFixed(1)}</td>
+      <td>${r.n}</td>
+      <td><span class="kd-badge ${cls}">${grade}</span></td>
+    </tr>`;
+  });
+  document.getElementById('kdTable').innerHTML=html+'</tbody>';
+}
+
+function renderDetailTable(rows){
+  if(!rows.length){
+    document.getElementById('detailSortCol').innerHTML='';
+    document.getElementById('detailRowType').innerHTML='<option value="all">all</option>';
+    document.getElementById('detailCount').textContent='0 / 0 rows';
+    document.getElementById('detailTable').innerHTML='<tr><td>No data</td></tr>';
+    return;
+  }
+  const cols=Object.keys(rows[0]);
+  const sortSel=document.getElementById('detailSortCol');
+  sortSel.innerHTML=cols.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(!detailViewState.sortCol || !cols.includes(detailViewState.sortCol)){
+    detailViewState.sortCol=cols.includes('treatment')?'treatment':cols[0];
+  }
+  sortSel.value=detailViewState.sortCol;
+
+  const rowTypeSel=document.getElementById('detailRowType');
+  const rowTypes=[...new Set(rows.map(r=>String(r.row_type||'')))].filter(Boolean).sort();
+  rowTypeSel.innerHTML='<option value="all">all</option>'+rowTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
+  if(detailViewState.rowType!=='all' && !rowTypes.includes(detailViewState.rowType)){
+    detailViewState.rowType='all';
+  }
+  rowTypeSel.value=detailViewState.rowType;
+
+  document.getElementById('detailSearch').value=detailViewState.search;
+  document.getElementById('detailSortDir').value=detailViewState.sortDir;
+  refreshDetailTable();
+}
+
+function resetDetailView(){
+  detailViewState={search:'',rowType:'all',sortCol:'',sortDir:'asc'};
+  if(analysisResult&&analysisResult.detailRows)renderDetailTable(analysisResult.detailRows);
+}
+
+function refreshDetailTable(){
+  if(!analysisResult||!analysisResult.detailRows||!analysisResult.detailRows.length)return;
+  const allRows=analysisResult.detailRows;
+  const cols=Object.keys(allRows[0]);
+  const searchEl=document.getElementById('detailSearch');
+  const rowTypeEl=document.getElementById('detailRowType');
+  const sortColEl=document.getElementById('detailSortCol');
+  const sortDirEl=document.getElementById('detailSortDir');
+
+  detailViewState.search=(searchEl?.value||'').trim();
+  detailViewState.rowType=rowTypeEl?.value||'all';
+  detailViewState.sortCol=sortColEl?.value||detailViewState.sortCol||cols[0];
+  detailViewState.sortDir=sortDirEl?.value||'asc';
+
+  const kw=detailViewState.search.toLowerCase();
+  let rows=[...allRows].filter(r=>{
+    if(detailViewState.rowType!=='all' && String(r.row_type||'')!==detailViewState.rowType)return false;
+    if(!kw)return true;
+    return cols.some(c=>String(r[c]??'').toLowerCase().includes(kw));
+  });
+
+  const sc=detailViewState.sortCol;
+  const dir=detailViewState.sortDir==='desc'?-1:1;
+  rows.sort((a,b)=>{
+    const av=String(a[sc]??'');
+    const bv=String(b[sc]??'');
+    const an=Number(av),bn=Number(bv);
+    const bothNum=Number.isFinite(an)&&Number.isFinite(bn)&&av!==''&&bv!=='';
+    if(bothNum)return (an-bn)*dir;
+    return av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'})*dir;
+  });
+
+  let html='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>{ html+='<tr>'+cols.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>'; });
+  document.getElementById('detailTable').innerHTML=html+'</tbody>';
+  document.getElementById('detailCount').textContent=`${rows.length} / ${allRows.length} rows`;
+}
+
+function renderSummaryCards(kd){
+  const high=kd.filter(r=>r.kd>=70).length;
+  const mid =kd.filter(r=>r.kd>=40&&r.kd<70).length;
+  const low =kd.filter(r=>r.kd>=0&&r.kd<40).length;
+  const over=kd.filter(r=>r.kd<0).length;
+  const genes=[...new Set(kd.map(r=>r.primer))].length;
+  document.getElementById('summaryCards').innerHTML=`
+    <div class="s-card"><div class="s-num">${kd.length}</div><div class="s-lbl">siRNAs analysed</div></div>
+    <div class="s-card"><div class="s-num" style="color:#34a853">${high}</div><div class="s-lbl">High KD ≥70%</div></div>
+    <div class="s-card"><div class="s-num" style="color:#ffa000">${mid}</div><div class="s-lbl">Medium KD 40–70%</div></div>
+    <div class="s-card"><div class="s-num" style="color:#ea4335">${low}</div><div class="s-lbl">Low KD &lt;40%</div></div>
+    <div class="s-card"><div class="s-num" style="color:#1d4ed8">${over}</div><div class="s-lbl">Overexpression (KD &lt;0%)</div></div>
+    <div class="s-card"><div class="s-num">${genes}</div><div class="s-lbl">Target genes</div></div>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════════════════════ */
+function renderCharts(kd){
+  const refGene = (analysisResult&&analysisResult.refGene)||'';
+  const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
+  const ntcData = (showNTC && analysisResult&&analysisResult.ntcResults)||[];
+  const ntcSorted=[...ntcData].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  /* prepend NTC entries (gray) before colored entries */
+  const allSorted=[...ntcSorted,...sorted];
+  const labels =allSorted.map(r=>`${r.siRNA}<br>(${r.primer})`);
+  const kdVals =allSorted.map(r=>+r.kd.toFixed(2));
+  const seKDPct=allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
+  const seExprPct=allSorted.map(r=>isNaN(r.seRE)?null:+(r.seRE*100).toFixed(2));
+  const isNTC  =allSorted.map((_,i)=>i<ntcSorted.length);
+  const colors =allSorted.map((r,i)=>isNTC[i]?'#9ca3af':r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
+  const fnt={family:'"Segoe UI",-apple-system,BlinkMacSystemFont,sans-serif',color:'#334155'};
+  const axBase={gridcolor:'#e8edf3',linecolor:'#d0d7e3',tickfont:{size:11,color:'#64748b'},zeroline:false};
+  const CL={
+    plot_bgcolor:'rgba(247,249,252,0.7)',
+    paper_bgcolor:'#ffffff',
+    font:fnt,
+    autosize:true,
+    margin:{t:60,b:200,l:70,r:20},
+    xaxis:{...axBase,tickangle:-40},
+    yaxis:{...axBase},
+    legend:{orientation:'h',y:-0.5,font:{size:11}},
+    hoverlabel:{font:{family:fnt.family,size:12},bgcolor:'white',bordercolor:'#cdd5e0'}
+  };
+  const titleStyle=(text)=>({text:text+hkLabel,font:{...fnt,size:14,color:'#1e3a5f'},x:0.5,xanchor:'center'});
+
+  const barAnnotations=labels.map((lbl,i)=>({x:lbl,y:kdVals[i],xref:'x',yref:'y',
+    text:kdVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
+  Plotly.newPlot('plotBar',[
+    {type:'bar',x:labels,y:kdVals,
+     error_y:{type:'data',array:seKDPct,visible:true,thickness:1.5,width:4,color:'#475569'},
+     marker:{color:colors,opacity:.82,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
+     customdata:seKDPct,showlegend:false,
+     hovertemplate:'<b>%{x}</b><br>KD: %{y:.1f}%<br>SE: %{customdata:.2f}%<extra></extra>'}
+  ],{...CL,title:titleStyle('siRNA Knockdown Efficiency (%)'),
+     yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}},range:[-20,120]},
+     annotations:barAnnotations
+  },{responsive:true});
+
+  const dotT=[];
+  allSorted.forEach((r,i)=>{
+    const lbl=`${r.siRNA}<br>(${r.primer})`;
+    dotT.push({showlegend:false,x:r.reps.map(()=>lbl),
+      y:r.reps.map(v=>+((1-v)*100).toFixed(2)),mode:'markers',type:'scatter',
+      marker:{size:9,color:colors[i],symbol:'circle-open',line:{width:2}}});
+    dotT.push({showlegend:false,x:[lbl,lbl],y:isNaN(r.kdSe)?[r.kd,r.kd]:[r.kd-r.kdSe,r.kd+r.kdSe],
+      mode:'lines',type:'scatter',line:{color:colors[i],width:4}});
+    dotT.push({showlegend:false,x:[lbl],y:[r.kd],mode:'markers',type:'scatter',
+      marker:{size:13,color:colors[i],symbol:'diamond'}});
+  });
+  const dotAnnotations=allSorted.map((r,i)=>({x:`${r.siRNA}<br>(${r.primer})`,y:r.kd,xref:'x',yref:'y',
+    text:r.kd.toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
+  Plotly.newPlot('plotDot',dotT,{...CL,
+    title:titleStyle('Individual Replicates — KD% (Mean ± SE)'),
+    yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}}},
+    annotations:dotAnnotations
+  },{responsive:true});
+
+  const exprVals=allSorted.map(r=>+(r.meanRE*100).toFixed(2));
+  const relAnnotations=labels.map((lbl,i)=>({x:lbl,y:exprVals[i],xref:'x',yref:'y',
+    text:exprVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
+  Plotly.newPlot('plotRel',[
+    {type:'bar',x:labels,y:exprVals,
+     error_y:{type:'data',array:seExprPct,visible:true,thickness:1.5,width:4,color:'#475569'},
+     marker:{color:colors,opacity:.82,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
+     customdata:seExprPct,showlegend:false,
+     hovertemplate:'<b>%{x}</b><br>Expression: %{y:.2f}% of NTC<br>SE: %{customdata:.2f}%<extra></extra>'}
+  ],{...CL,
+    title:titleStyle('Expression Relative to NTC (NTC = 100%)'),
+    yaxis:{...axBase,title:{text:'Expression (% of NTC)',font:{size:12}}},
+    annotations:relAnnotations
+  },{responsive:true});
+}
+
+/* ═══════════════════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════════════════ */
+function toggleNTC(){
+  showNTC=!showNTC;
+  const label=showNTC?'Hide NTC':'Show NTC';
+  document.querySelectorAll('#card5 .tab-panel button[onclick="toggleNTC()"]').forEach(b=>b.textContent=label);
+  if(analysisResult) renderCharts(analysisResult.kdResults);
+}
+
+function toggleMappingOptions(){
+  const wrap=document.getElementById('mappingOptionsWrap');
+  const btn=document.getElementById('toggleMapOptsBtn');
+  const willShow=wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden',!willShow);
+  btn.textContent=willShow?'▲ Hide Mapping Options':'▼ Show Mapping Options';
+}
+
+function downloadFig(divId,suffix){
+  const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const base=resultFileStem||'Figure';
+  const filename=`${today}_${base}_${suffix}`;
+  Plotly.downloadImage(document.getElementById(divId),{format:'png',filename,width:1400,height:900,scale:2});
+}
+
+function downloadKDcsv(){
+  if(!analysisResult) return;
+  let csv='siRNA,Target_Primer,Expression_pct_of_NTC,SE_pct_of_NTC,Mean_RelExp,SE_RelExp,KD_pct,KD_SE_pct,N,Individual_RelExp\n';
+  const fmtSE = v => isNaN(v)?'N/A':v.toFixed(4);
+  const fmtSE2= v => isNaN(v)?'N/A':v.toFixed(2);
+  analysisResult.kdResults.forEach(r=>{
+    csv+=`${r.siRNA},${r.primer},${(r.meanRE*100).toFixed(4)},${fmtSE(r.seRE*100)},${r.meanRE.toFixed(6)},${fmtSE(r.seRE)},`
+      +`${r.kd.toFixed(2)},${fmtSE2(r.kdSe)},${r.n},`
+        +`"${r.reps.map(v=>v.toFixed(4)).join(';')}"\n`;
+  });
+  dl(csv,'siRNA_KD_summary.csv');
+}
+function downloadDetailCsv(){
+  if(!analysisResult||!analysisResult.detailRows.length) return;
+  const cols=Object.keys(analysisResult.detailRows[0]);
+  let csv=cols.join(',')+'\n';
+  analysisResult.detailRows.forEach(r=>{ csv+=cols.map(c=>r[c]).join(',')+'\n'; });
+  dl(csv,'siRNA_KD_detail.csv');
+}
+function dl(text,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));
+  a.download=name; a.click();
+}
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
+/* treatmentOf: strip trailing _N (bio-rep suffix) to get treatment group name.
+   e.g. "siNTC_mix_1" → "siNTC_mix",  "siCtrl" → "siCtrl" (no change) */
+function treatmentOf(siRNA){
+  return siRNA.replace(/_\d+$/, '');
+}
+
+function normWell(w){
+  const m=w.match(/^([A-Za-z]+)0*(\d+)$/);
+  return m?m[1].toUpperCase()+m[2]:w.toUpperCase();
+}
+function splitCSV(line){
+  const result=[],re=/("(?:[^"]|"")*"|[^,\t]*)[,\t]?/g;
+  let m;
+  while((m=re.exec(line))!==null){
+    if(m.index===re.lastIndex){re.lastIndex++;continue;}
+    let v=(m[1]||'').trim();
+    if(v.startsWith('"')&&v.endsWith('"')) v=v.slice(1,-1).replace(/""/g,'"');
+    result.push(v);
+  }
+  while(result.length&&result[result.length-1]==='') result.pop();
+  return result;
+}
+function showStatus(id,type,msg){
+  const el=document.getElementById(id);
+  el.className=`alert alert-${type}`;
+  el.innerHTML=msg;
+  el.classList.remove('hidden');
+}
+function markZoneDone(id,msg){
+  const z=document.getElementById(id);
+  z.classList.add('done');
+  z.querySelector('.uz-title').textContent=msg;
+  z.querySelector('.uz-icon').textContent='✅';
+}
+function setStep(n){
+  for(let i=1;i<=4;i++){
+    const s=document.getElementById('step'+i);
+    s.classList.remove('active','done');
+    if(i<n) s.classList.add('done');
+    else if(i===n) s.classList.add('active');
+  }
+}
+function switchPrevTab(id,btn){
+  document.querySelectorAll('#card2 .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#prevTabBar .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active'); btn.classList.add('active');
+}
+function switchResTab(id,btn){
+  document.querySelectorAll('#card4 .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#card4 .tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active'); btn.classList.add('active');
+}
+function switchFigTab(id,btn){
+  document.querySelectorAll('#card5 .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#card5 .tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active'); btn.classList.add('active');
+  const plotEl=document.getElementById(id).querySelector('[id^="plot"]');
+  if(plotEl) Plotly.Plots.resize(plotEl);
+}
+window.addEventListener('resize',()=>{
+  ['plotBar','plotDot','plotRel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&el._fullLayout) Plotly.Plots.resize(el);
+  });
+});
+</script>
+
+<div class="copyright">
+  <div style="margin-bottom:3px">This web tool will not store or send any data you uploaded. You can also right-click to save the <a href="https://raw.githubusercontent.com/linda9617/plate-map-list-converter/main/index.html" download="Plate_vs_List.html">local version</a> to use.</div>
+  Copyright &copy; 2026 Lin. All rights reserved.
+</div>
+</body>
+</html>
