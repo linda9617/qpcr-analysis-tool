@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>siRNA Knockdown Efficiency Analyzer</title>
+  <title>siRNA Knockdown Efficiency Analyzer v1.0</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="xlsx.full.min.js"></script>
   <style>
@@ -139,8 +139,9 @@
 <body>
 
 <header>
-  <h1>siRNA Knockdown Efficiency Analyzer</h1>
+  <h1>siRNA Knockdown Efficiency Analyzer v1.0</h1>
   <p>Layout + Raw Data → Merge → 2⁻ΔΔCt → Knockdown Efficiency</p>
+  <p style="text-align:right;opacity:.65;font-size:.78rem;margin-top:4px">By ILYH</p>
 </header>
 
 <div class="container">
@@ -159,6 +160,11 @@
       <li>Confirm column mapping before analysis; ensure <code>Well</code>, <code>siRNA</code>, <code>Primer</code>, and <code>CT value</code> are correctly mapped.</li>
       <li>Set reference gene (for example <code>GAPDH</code>) and select NTC conditions, then run analysis.</li>
     </ul>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:.8rem;color:#6b7a8d;font-weight:600">Download templates to test:</span>
+      <button class="btn-secondary" onclick="downloadLayoutTemplate()">Layout Template (CSV)</button>
+      <button class="btn-secondary" onclick="downloadResultTemplate()">Result Template (Excel)</button>
+    </div>
   </div>
 
   <!-- ═══ CARD 1 · Upload ═══ -->
@@ -167,18 +173,18 @@
     <div class="upload-grid">
 
       <div>
-        <p style="font-weight:700;margin-bottom:8px">📋 Layout File <span style="font-weight:400;color:#888">(CSV)</span></p>
+        <p style="font-weight:700;margin-bottom:8px">Layout File <span style="font-weight:400;color:#888">(CSV / XLS / XLSX)</span></p>
         <div class="upload-zone" id="zoneLayout">
-          <input type="file" id="fileLayout" accept=".csv" onchange="handleLayout(event)"/>
+          <input type="file" id="fileLayout" accept=".csv,.xls,.xlsx" onchange="handleLayout(event)"/>
           <div class="uz-icon">📋</div>
-          <div class="uz-title">Click or drag Layout CSV here</div>
+          <div class="uz-title">Click or drag Layout file here</div>
           <small>Required columns: Well · siRNA · Primer</small>
         </div>
         <div id="layoutStatus" class="hidden" style="margin-top:8px"></div>
       </div>
 
       <div>
-        <p style="font-weight:700;margin-bottom:8px">📊 Result File <span style="font-weight:400;color:#888">(Excel .xlsx)</span></p>
+        <p style="font-weight:700;margin-bottom:8px">Result File <span style="font-weight:400;color:#888">(XLS / XLSX)</span></p>
         <div class="upload-zone" id="zoneResult">
           <input type="file" id="fileResult" accept=".xlsx,.xls" onchange="handleResult(event)"/>
           <div class="uz-icon">📊</div>
@@ -342,8 +348,8 @@
       </div>
     </div>
     <div class="btn-row" style="margin-top:14px">
-      <button class="btn-secondary" onclick="downloadKDcsv()">⬇️ KD Summary CSV</button>
-      <button class="btn-secondary" onclick="downloadDetailCsv()">⬇️ Full Detail CSV</button>
+      <button class="btn-secondary" onclick="downloadKDcsv()">KD Summary CSV</button>
+      <button class="btn-secondary" onclick="downloadDetailCsv()">Full Detail CSV</button>
     </div>
   </div>
 
@@ -496,19 +502,36 @@ function trimAoa(aoa){
 
 function handleLayoutFile(file){
   showStatus('layoutStatus','info',`Reading ${file.name} …`);
+  const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const lines = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
-      layoutAoa    = lines.map(l => splitCSV(l));
-      layoutHdrIdx = detectLayoutHeader(layoutAoa);
-      markZoneDone('zoneLayout', `✅ ${file.name}`);
-      showStatus('layoutStatus','success',
-        `✅ ${file.name} · ${layoutAoa.length} rows · header at row ${layoutHdrIdx+1}`);
-      tryShowMapper();
-    } catch(err){ showStatus('layoutStatus','error','❌ '+err.message); }
-  };
-  reader.readAsText(file,'UTF-8');
+  if(ext === 'csv'){
+    reader.onload = ev => {
+      try {
+        const lines = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+        layoutAoa    = lines.map(l => splitCSV(l));
+        layoutHdrIdx = detectLayoutHeader(layoutAoa);
+        markZoneDone('zoneLayout', `✅ ${file.name}`);
+        showStatus('layoutStatus','success',
+          `✅ ${file.name} · ${layoutAoa.length} rows · header at row ${layoutHdrIdx+1}`);
+        tryShowMapper();
+      } catch(err){ showStatus('layoutStatus','error','❌ '+err.message); }
+    };
+    reader.readAsText(file,'UTF-8');
+  } else {
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        layoutAoa    = trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''}));
+        layoutHdrIdx = detectLayoutHeader(layoutAoa);
+        markZoneDone('zoneLayout', `✅ ${file.name}`);
+        showStatus('layoutStatus','success',
+          `✅ ${file.name} (sheet "${wb.SheetNames[0]}") · ${layoutAoa.length} rows · header at row ${layoutHdrIdx+1}`);
+        tryShowMapper();
+      } catch(err){ showStatus('layoutStatus','error','❌ '+err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
 }
 
 function handleResultFile(file){
@@ -1439,10 +1462,73 @@ window.addEventListener('resize',()=>{
     if(el&&el._fullLayout) Plotly.Plots.resize(el);
   });
 });
+
+/* ═══════════════════════════════════════════════════════
+   TEMPLATE GENERATORS
+   Layout: Well, siRNA (bio-rep named _N), Primer
+   Result: sheet "Results", Well Position, CT
+   Design: 2 NTC + 10 siGENE bio-reps
+           each with 2 tech-rep wells × 2 primers (GAPDH + TARGET_GENE)
+   Rows A–K on a 96/384-well plate, cols 1–8 per group
+═══════════════════════════════════════════════════════ */
+function downloadLayoutTemplate(){
+  const genes = ['siNTC','siGENE1','siGENE2','siGENE3','siGENE4','siGENE5',
+                 'siGENE6','siGENE7','siGENE8','siGENE9','siGENE10'];
+  const rowLetters = 'ABCDEFGHIJK'.split('');
+  const rows = ['Well,siRNA,Primer'];
+  genes.forEach((gene, gi) => {
+    const r = rowLetters[gi];
+    rows.push(`${r}1,${gene}_1,GAPDH`,    `${r}2,${gene}_1,GAPDH`);
+    rows.push(`${r}3,${gene}_1,TARGET_GENE`, `${r}4,${gene}_1,TARGET_GENE`);
+    rows.push(`${r}5,${gene}_2,GAPDH`,    `${r}6,${gene}_2,GAPDH`);
+    rows.push(`${r}7,${gene}_2,TARGET_GENE`, `${r}8,${gene}_2,TARGET_GENE`);
+  });
+  dl(rows.join('\n'),'Template_Layout.csv');
+}
+
+function downloadResultTemplate(){
+  // NTC: GAPDH=20, TARGET=25 → ΔCt=5
+  // Each siGENE has a target CT mean to yield a specific KD:
+  //   KD = (1 − 2^−(ΔCt_siRNA − ΔCt_NTC)) × 100
+  const genes = [
+    {name:'siNTC',    tgt:25.00},  // baseline
+    {name:'siGENE1',  tgt:28.32},  // KD ≈ 90%
+    {name:'siGENE2',  tgt:27.74},  // KD ≈ 85%
+    {name:'siGENE3',  tgt:27.18},  // KD ≈ 78%
+    {name:'siGENE4',  tgt:26.84},  // KD ≈ 72%
+    {name:'siGENE5',  tgt:26.52},  // KD ≈ 65%
+    {name:'siGENE6',  tgt:26.15},  // KD ≈ 55%
+    {name:'siGENE7',  tgt:25.79},  // KD ≈ 42%
+    {name:'siGENE8',  tgt:25.52},  // KD ≈ 30%
+    {name:'siGENE9',  tgt:25.15},  // KD ≈ 10%
+    {name:'siGENE10', tgt:24.80},  // KD ≈ −15% (overexpression)
+  ];
+  const G = 20.0;
+  // Deterministic noise offsets for tech-rep pairs (bio-rep1 then bio-rep2)
+  const dG1=[-0.18,+0.18], dT1=[-0.27,+0.27];
+  const dG2=[-0.08,+0.08], dT2=[+0.15,-0.15];
+  const rowLetters = 'ABCDEFGHIJK'.split('');
+  const data = [['Well Position','CT']];
+  genes.forEach((gene, gi) => {
+    const r = rowLetters[gi];
+    const T = gene.tgt;
+    // bio-rep 1: cols 1-4
+    data.push([`${r}1`, +(G+dG1[0]).toFixed(2)], [`${r}2`, +(G+dG1[1]).toFixed(2)]);
+    data.push([`${r}3`, +(T+dT1[0]).toFixed(2)], [`${r}4`, +(T+dT1[1]).toFixed(2)]);
+    // bio-rep 2: cols 5-8
+    data.push([`${r}5`, +(G+dG2[0]).toFixed(2)], [`${r}6`, +(G+dG2[1]).toFixed(2)]);
+    data.push([`${r}7`, +(T+dT2[0]).toFixed(2)], [`${r}8`, +(T+dT2[1]).toFixed(2)]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Results');
+  XLSX.writeFile(wb,'Template_Result.xlsx');
+}
 </script>
 
 <div class="copyright">
-  <div style="margin-bottom:3px">This web tool will not store or send any data you uploaded. You can also right-click to save the <a href="https://raw.githubusercontent.com/linda9617/plate-map-list-converter/main/index.html" download="Plate_vs_List.html">local version</a> to use.</div>
+  <div style="margin-bottom:3px">This web tool will not store or send any data you uploaded.
+  To use locally, download <a href="https://raw.githubusercontent.com/linda9617/qpcr-analysis-tool/main/index.html" download="qpcr-analysis-tool.html" style="color:var(--primary);text-decoration:none;font-weight:600">local version</a> and <a href="https://raw.githubusercontent.com/linda9617/qpcr-analysis-tool/main/xlsx.full.min.js" download="xlsx.full.min.js" style="color:var(--primary);text-decoration:none;font-weight:600">support file</a>.</div>
   Copyright &copy; 2026 Lin. All rights reserved.
 </div>
 </body>
