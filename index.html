@@ -75,6 +75,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .btn-success{background:#34a853;color:white}.btn-success:hover{background:#2d8e47}
         .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
         .btn-secondary:hover{background:var(--primary-lt)}
+        #loadTemplateBtn{background:#e8f4fd;border-color:#5ea8dd;color:#003865;transition:background .15s,transform .1s,box-shadow .15s}
+        #loadTemplateBtn:hover{background:#cce4f7;border-color:#3a87c8;box-shadow:0 2px 6px rgba(0,56,101,.18)}
+        #loadTemplateBtn:active{background:#a8d0ef;box-shadow:none}
     .btn-warn{background:#f57c00;color:white}.btn-warn:hover{background:#e65100}
     .alert{padding:10px 13px;border-radius:var(--r);font-size:.8rem;margin-bottom:9px;line-height:1.6}
     .alert-info   {background:#e8eef7;color:var(--primary-dk);border-left:3px solid var(--primary)}
@@ -175,7 +178,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 <body>
 
 <header>
-  <h1>siRNA Knockdown Efficiency Analyzer v1.0</h1>
+  <h1>siRNA Knockdown Efficiency Analyzer v1.1</h1>
   <p>Layout + Raw Data → Merge → 2⁻ΔΔCt → Knockdown Efficiency</p>
   <p class="author">By ILYH</p>
 </header>
@@ -197,9 +200,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <li>Set reference gene (for example <code>GAPDH</code>) and select NTC conditions, then run analysis.</li>
     </ul>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <span style="font-size:.8rem;color:#6b7a8d;font-weight:600">Download templates to test:</span>
+      <span style="font-size:.8rem;color:#6b7a8d;font-weight:600">Download templates:</span>
       <button class="btn-secondary" onclick="downloadLayoutTemplate()">Layout Template (CSV)</button>
       <button class="btn-secondary" onclick="downloadResultTemplate()">Result Template (Excel)</button>
+      <button id="loadTemplateBtn" class="btn-secondary" onclick="loadTemplateData()">Load Template Data</button>
     </div>
   </div>
 
@@ -1507,6 +1511,63 @@ window.addEventListener('resize',()=>{
            each with 2 tech-rep wells × 2 primers (GAPDH + TARGET_GENE)
    Rows A–K on a 96/384-well plate, cols 1–8 per group
 ═══════════════════════════════════════════════════════ */
+function loadTemplateData(){
+  // ── Build layout AOA (same data as downloadLayoutTemplate) ──
+  const genes = ['siNTC','siGENE1','siGENE2','siGENE3','siGENE4','siGENE5',
+                 'siGENE6','siGENE7','siGENE8','siGENE9','siGENE10'];
+  const rowLetters = 'ABCDEFGHIJK'.split('');
+  const layoutRows = [['Well','siRNA','Primer']];
+  genes.forEach((gene, gi) => {
+    const r = rowLetters[gi];
+    layoutRows.push([`${r}1`,`${gene}_1`,'GAPDH'],      [`${r}2`,`${gene}_1`,'GAPDH']);
+    layoutRows.push([`${r}3`,`${gene}_1`,'TARGET_GENE'],[`${r}4`,`${gene}_1`,'TARGET_GENE']);
+    layoutRows.push([`${r}5`,`${gene}_2`,'GAPDH'],      [`${r}6`,`${gene}_2`,'GAPDH']);
+    layoutRows.push([`${r}7`,`${gene}_2`,'TARGET_GENE'],[`${r}8`,`${gene}_2`,'TARGET_GENE']);
+  });
+  layoutAoa    = layoutRows;
+  layoutHdrIdx = detectLayoutHeader(layoutAoa);
+  markZoneDone('zoneLayout', '✅ Template_Layout.csv');
+  showStatus('layoutStatus','success',
+    `✅ Template_Layout.csv · ${layoutAoa.length} rows · header at row ${layoutHdrIdx+1}`);
+
+  // ── Build result AOA (same data as downloadResultTemplate) ──
+  const genesDef = [
+    {name:'siNTC',    tgt:25.00},
+    {name:'siGENE1',  tgt:28.32},
+    {name:'siGENE2',  tgt:27.74},
+    {name:'siGENE3',  tgt:27.18},
+    {name:'siGENE4',  tgt:26.84},
+    {name:'siGENE5',  tgt:26.52},
+    {name:'siGENE6',  tgt:26.15},
+    {name:'siGENE7',  tgt:25.79},
+    {name:'siGENE8',  tgt:25.52},
+    {name:'siGENE9',  tgt:25.15},
+    {name:'siGENE10', tgt:24.80},
+  ];
+  const G = 20.0;
+  const dG1=[-0.18,+0.18], dT1=[-0.27,+0.27];
+  const dG2=[-0.08,+0.08], dT2=[+0.15,-0.15];
+  const resultRows = [['Well Position','CT']];
+  genesDef.forEach((gene, gi) => {
+    const r = rowLetters[gi];
+    const T = gene.tgt;
+    resultRows.push([`${r}1`, +(G+dG1[0]).toFixed(2)], [`${r}2`, +(G+dG1[1]).toFixed(2)]);
+    resultRows.push([`${r}3`, +(T+dT1[0]).toFixed(2)], [`${r}4`, +(T+dT1[1]).toFixed(2)]);
+    resultRows.push([`${r}5`, +(G+dG2[0]).toFixed(2)], [`${r}6`, +(G+dG2[1]).toFixed(2)]);
+    resultRows.push([`${r}7`, +(T+dT2[0]).toFixed(2)], [`${r}8`, +(T+dT2[1]).toFixed(2)]);
+  });
+  resultAoa    = resultRows;
+  resultHdrIdx = detectResultHeader(resultAoa);
+  resultFileStem = 'Template_Result';
+  markZoneDone('zoneResult', '✅ Template_Result.xlsx');
+  showStatus('resultStatus','success',
+    `✅ Template_Result.xlsx · ${resultAoa.length} rows · header at row ${resultHdrIdx+1}`);
+  document.getElementById('hdrOverrideBox').style.display = 'flex';
+  document.getElementById('hdrRowInput').value = resultHdrIdx + 1;
+
+  tryShowMapper();
+}
+
 function downloadLayoutTemplate(){
   const genes = ['siNTC','siGENE1','siGENE2','siGENE3','siGENE4','siGENE5',
                  'siGENE6','siGENE7','siGENE8','siGENE9','siGENE10'];
