@@ -247,7 +247,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
     <!-- Manual header row override -->
     <div class="hdr-override" id="hdrOverrideBox" style="display:none">
-      <label>⚠️ Header row not detected correctly?</label>
+      <label>Header row not detected correctly?</label>
       <input type="number" id="hdrRowInput" min="1" placeholder="e.g. 47"/>
       <button class="btn-warn" onclick="applyManualHeader()">Apply</button>
       <small>Enter the exact row number (1-based) where the column headers are</small>
@@ -261,17 +261,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
     <!-- Result scan: show rows around detected header -->
     <div class="scan-box" id="scanBox">
-      <strong style="font-size:.82rem">🔍 Rows around detected header (Result file)</strong>
+      <strong style="font-size:.82rem">Rows around detected header (Result file)</strong>
       <div id="scanPreview" style="margin-top:6px;overflow-x:auto"></div>
     </div>
 
     <div class="col-mapper" style="margin-top:14px">
-      <h3>📊 Result File — Column Mapping</h3>
+      <h3>Result File — Column Mapping</h3>
       <div class="mapper-grid" id="resultMapperGrid"></div>
     </div>
 
     <div class="col-mapper" style="margin-top:12px">
-      <h3>📋 Layout File — Column Mapping</h3>
+      <h3>Layout File — Column Mapping</h3>
       <div class="mapper-grid" id="layoutMapperGrid"></div>
     </div>
 
@@ -289,7 +289,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </div>
 
     <div class="btn-row">
-      <button class="btn-primary" onclick="confirmMapping()">✅ Confirm &amp; Continue</button>
+      <button class="btn-primary" onclick="confirmMapping()">Confirm &amp; Continue</button>
     </div>
   </div>
 
@@ -322,7 +322,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div class="ntc-grid" id="omitGrid"></div>
     </div>
     <div class="btn-row">
-      <button class="btn-success" onclick="runAnalysis()">🚀 Run Analysis</button>
+      <button class="btn-success" onclick="runAnalysis()">Run Analysis</button>
     </div>
   </div>
 
@@ -331,9 +331,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     <h2>Knockdown Results</h2>
     <div class="summary-cards" id="summaryCards"></div>
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchResTab('tabKD',this)">📋 KD Summary</button>
-      <button class="tab-btn" onclick="switchResTab('tabDetail',this)">🔢 ΔCt / ΔΔCt Detail</button>
-      <button class="tab-btn" onclick="switchResTab('tabMethod',this)">📐 Method (NTC = 100%)</button>
+      <button class="tab-btn active" onclick="switchResTab('tabKD',this)">KD Summary</button>
+      <button class="tab-btn" onclick="switchResTab('tabDetail',this)">ΔCt / ΔΔCt Detail</button>
+      <button class="tab-btn" onclick="switchResTab('tabMethod',this)">Method (NTC = 100%)</button>
     </div>
     <div class="tab-panel active" id="tabKD">
       <div class="tbl-wrap"><table id="kdTable"></table></div>
@@ -397,9 +397,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   <div class="card hidden" id="card5">
     <h2>Figures</h2>
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchFigTab('figBar',this)">📊 KD Bar Chart</button>
-      <button class="tab-btn" onclick="switchFigTab('figDot',this)">⬤ Dot + Replicates</button>
-      <button class="tab-btn" onclick="switchFigTab('figRel',this)">📈 Expression (% of NTC)</button>
+      <button class="tab-btn active" onclick="switchFigTab('figBar',this)">KD Bar Chart</button>
+      <button class="tab-btn" onclick="switchFigTab('figDot',this)">Dot + Replicates</button>
+      <button class="tab-btn" onclick="switchFigTab('figRel',this)">Expression (% of NTC)</button>
     </div>
     <div class="tab-panel active" id="figBar">
       <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
