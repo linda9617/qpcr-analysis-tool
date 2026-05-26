@@ -230,8 +230,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </ul>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <span style="font-size:.8rem;color:#6b7a8d;font-weight:600">Download templates:</span>
-      <button class="btn-secondary" onclick="downloadLayoutTemplate()">Metadata Template (CSV)</button>
-      <button class="btn-secondary" onclick="downloadResultTemplate()">Result Template (Excel)</button>
+      <button class="btn-secondary" onclick="downloadLayoutTemplate()">Metadata List Template (.csv)</button>
+      <button class="btn-secondary" onclick="downloadLayoutMapTemplate()">Metadata Map Template (.csv)</button>
+      <button class="btn-secondary" onclick="downloadResultTemplate()">Result Template (.xlsx)</button>
       <button id="loadTemplateBtn" class="btn-secondary" onclick="loadTemplateData()">Load Template Data</button>
     </div>
   </div>
@@ -636,6 +637,7 @@ function handleLayoutFile(file){
       try {
         const lines = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
         layoutAoa    = lines.map(l => splitCSV(l));
+        if(isPlateMapFormat(layoutAoa)) layoutAoa = parsePlateMapToList(layoutAoa);
         layoutHdrIdx = detectLayoutHeader(layoutAoa);
         markZoneDone('zoneLayout', `✅ ${file.name}`);
         document.getElementById('layoutStatus').classList.add('hidden');
@@ -649,6 +651,7 @@ function handleLayoutFile(file){
         const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
         const ws = wb.Sheets[wb.SheetNames[0]];
         layoutAoa    = trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''}));
+        if(isPlateMapFormat(layoutAoa)) layoutAoa = parsePlateMapToList(layoutAoa);
         layoutHdrIdx = detectLayoutHeader(layoutAoa);
         markZoneDone('zoneLayout', `✅ ${file.name}`);
         document.getElementById('layoutStatus').classList.add('hidden');
@@ -796,6 +799,39 @@ function detectLayoutHeader(aoa){
     if(aoa[i].some(c => /well/i.test(String(c)))) return i;
   }
   return 0;
+}
+
+/* Detect plate-map format: has a row whose first cell is "siRNA" or "Primer" */
+function isPlateMapFormat(aoa){
+  return aoa.some(row => /^(sirna|primer|sample|gene)$/i.test(String(row[0]||'').trim()));
+}
+
+/* Convert 2-section plate-map CSV → Well-list AoA [["Well","siRNA","Primer"], ...] */
+function parsePlateMapToList(aoa){
+  const sections = {};
+  let curField = null, colNums = [];
+  for(const row of aoa){
+    const first = String(row[0]||'').trim();
+    if(/^(sirna|primer|sample|gene)$/i.test(first)){
+      curField = first; sections[curField] = {};
+      colNums = row.slice(1).map(c => String(c||'').trim());
+    } else if(curField && /^[A-P]$/i.test(first)){
+      const rowLtr = first.toUpperCase();
+      for(let ci = 0; ci < colNums.length; ci++){
+        const col = colNums[ci]; if(!col) continue;
+        const val = String(row[ci+1]||'').trim();
+        if(val) sections[curField][rowLtr + col] = val;
+      }
+    }
+  }
+  const siKey = Object.keys(sections).find(k => /^(sirna|sample)$/i.test(k)) || '';
+  const prKey = Object.keys(sections).find(k => /^(primer|gene|target)$/i.test(k)) || '';
+  const siMap = sections[siKey]||{}, prMap = sections[prKey]||{};
+  const wells = [...new Set([...Object.keys(siMap), ...Object.keys(prMap)])].sort(
+    (a,b) => { const ra=a.charCodeAt(0), rb=b.charCodeAt(0); return ra!==rb ? ra-rb : parseInt(a.slice(1))-parseInt(b.slice(1)); });
+  const out = [['Well','siRNA','Primer']];
+  for(const w of wells){ const si=siMap[w]||'', pr=prMap[w]||''; if(si||pr) out.push([w,si,pr]); }
+  return out;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2209,6 +2245,10 @@ function downloadLayoutTemplate(){
   dl(LAYOUT_TEMPLATE_CSV, 'Metadata_Template.csv');
 }
 
+function downloadLayoutMapTemplate(){
+  dl(LAYOUT_MAP_TEMPLATE_CSV, 'Metadata_map_Template.csv');
+}
+
 function downloadResultTemplate(){
   const binary = atob(RESULT_TEMPLATE_B64);
   const bytes = new Uint8Array(binary.length);
@@ -2222,6 +2262,42 @@ function downloadResultTemplate(){
 </script>
 
 <script>
+const LAYOUT_MAP_TEMPLATE_CSV = `siRNA,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
+A,,,,,,,,,,,,,,,,,,,,,,,,
+B,,siNTC_1,siTarget2_1,siTarget3_1,siTarget4_1,siTarget5_1,siTarget6_1,siTarget7_1,siTarget8_1,siTarget9_1,siTarget10_1,siTarget11_1,siTarget12_1,,siNTC_1,siNTC_1,siNTC_1,siNTC_1,siNTC_1,siNTC_1,,siNTC_1,siNTC_1,
+C,,siNTC_2,siTarget2_2,siTarget3_2,siTarget4_2,siTarget5_2,siTarget6_2,siTarget7_2,siTarget8_2,siTarget9_2,siTarget10_2,siTarget11_2,siTarget12_2,,,,,,,,,,,
+D,,siNTC_3,siTarget2_3,siTarget3_3,siTarget4_3,siTarget5_3,siTarget6_3,siTarget7_3,siTarget8_3,siTarget9_3,siTarget10_3,siTarget11_3,siTarget12_3,,,siNTC_2,,siNTC_2,,siNTC_2,,siNTC_2,siNTC_2,
+E,,siNTC_4,siTarget2_4,siTarget3_4,siTarget4_4,siTarget5_4,siTarget6_4,siTarget7_4,siTarget8_4,siTarget9_4,siTarget10_4,siTarget11_4,siTarget12_4,,siNTC_2,,siNTC_2,,siNTC_2,,,,,
+F,,,,,,,,,,,,,,,siNTC_3,siNTC_3,siNTC_3,siNTC_3,siNTC_3,siNTC_3,,siNTC_3,siNTC_3,
+G,,siNTC_1,siTarget2_1,siTarget3_1,siTarget4_1,siTarget5_1,siTarget6_1,siTarget7_1,siTarget8_1,siTarget9_1,siTarget10_1,siTarget11_1,siTarget12_1,,,,,,,,,,,
+H,,siNTC_2,siTarget2_2,siTarget3_2,siTarget4_2,siTarget5_2,siTarget6_2,siTarget7_2,siTarget8_2,siTarget9_2,siTarget10_2,siTarget11_2,siTarget12_2,,siNTC_4,siNTC_4,siNTC_4,siNTC_4,siNTC_4,siNTC_4,,siNTC_4,siNTC_4,
+I,,siNTC_3,siTarget2_3,siTarget3_3,siTarget4_3,siTarget5_3,siTarget6_3,siTarget7_3,siTarget8_3,siTarget9_3,siTarget10_3,siTarget11_3,siTarget12_3,,,,,,,,,,,
+J,,siNTC_4,siTarget2_4,siTarget3_4,siTarget4_4,siTarget5_4,siTarget6_4,siTarget7_4,siTarget8_4,siTarget9_4,siTarget10_4,siTarget11_4,siTarget12_4,,,,,,,,,,,
+K,,,,,,,,,,,,,,,,,,,,,,,,
+L,,,,,,,,,,,,,,,,,,,,,,,,
+M,,,,,,,,,,,,,,,,,,,,,,,,
+N,,,,,,,,,,,,,,,,,,,,,,,,
+O,,,,,,,,,,,,,,,,,,,,,,,,
+P,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+Primer,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24
+A,,,,,,,,,,,,,,,,,,,,,,,,
+B,,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,,Target2,Target3,Target4,Target5,Target6,Target7,,Target8,Target9,
+C,,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,,,,,,,,,,,
+D,,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,,,Target3,,Target5,,Target7,,Target8,Target9,
+E,,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,GAPDH,,Target2,,Target4,,Target6,,,,,
+F,,,,,,,,,,,,,,,Target2,Target3,Target4,Target5,Target6,Target7,,Target8,Target9,
+G,,Target10,Target7,Target10,Target2,Target3,Target4,Target5,Target6,Target7,Target7,Target8,Target9,,,,,,,,,,,
+H,,Target10,Target7,Target10,Target2,Target3,Target4,Target5,Target6,Target7,Target7,Target8,Target9,,Target2,Target3,Target4,Target5,Target6,Target7,,Target8,Target9,
+I,,Target10,Target7,Target10,Target2,Target3,Target4,Target5,Target6,Target7,Target7,Target8,Target9,,,,,,,,,,,
+J,,Target10,Target7,Target10,Target2,Target3,Target4,Target5,Target6,Target7,Target7,Target8,Target9,,,,,,,,,,,
+K,,,,,,,,,,,,,,,,,,,,,,,,
+L,,,,,,,,,,,,,,,,,,,,,,,,
+M,,,,,,,,,,,,,,,,,,,,,,,,
+N,,,,,,,,,,,,,,,,,,,,,,,,
+O,,,,,,,,,,,,,,,,,,,,,,,,
+P,,,,,,,,,,,,,,,,,,,,,,,,`;
+
 const LAYOUT_TEMPLATE_CSV = `Well,siRNA,Primer
 A1,,
 A2,,
