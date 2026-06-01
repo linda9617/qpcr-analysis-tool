@@ -90,7 +90,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .tab-btn.active{color:var(--primary);background:var(--primary-lt);border-color:#c8d7f0;font-weight:700}
     .tab-btn:hover:not(.active){color:var(--primary-dk);background:#f7f9fc}
     .tab-panel{display:none}.tab-panel.active{display:block}
-    .fig-wrap{width:100%;min-height:500px;overflow-x:auto;display:flex;justify-content:center;}
+    .fig-wrap{width:100%;min-height:500px;overflow-x:auto;display:flex;justify-content:flex-start;}
     .hidden{display:none}
     .tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
      table{width:100%;border-collapse:collapse;font-size:.8rem}
@@ -208,7 +208,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 <body>
 
 <header>
-  <h1>siRNA Knockdown Efficiency Analyzer v1.2</h1>
+  <h1>siRNA Knockdown Efficiency Analyzer v1.3</h1>
   <p>Layout + Raw Data → Merge → 2⁻ΔΔCt → Knockdown Efficiency</p>
   <p class="author">By ILYH</p>
 </header>
@@ -464,13 +464,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <strong>Step 2 – ΔCt per bio-rep:</strong><br>
           <code>ΔCt = mean_Ct(target) − mean_Ct(reference gene)</code><br>
           <strong>Step 3 – NTC baseline ΔCt (pool all NTC bio-reps per primer):</strong><br>
-          <code>mean_ΔCt_NTC = mean of all NTC ΔCt values for that primer</code><br>
-          <strong>Step 4 – ΔΔCt:</strong><br>
+          <code>mean_ΔCt_NTC = arithmetic mean of all NTC ΔCt values for that primer</code><br>
+          <strong>Step 4 – ΔΔCt per bio-rep:</strong><br>
           <code>ΔΔCt = ΔCt(siRNA) − mean_ΔCt_NTC</code><br>
-          <strong>Step 5 – Relative expression &amp; KD%:</strong><br>
+          <strong>Step 5 – Relative expression per bio-rep:</strong><br>
           <code>Rel. Exp. = 2^(−ΔΔCt)</code><br>
-          <code>KD% = (1 − Rel. Exp.) × 100</code><br><br>
-          <em>Mean ± SE reported across biological replicates (NTC-mix1/2/3/4).</em>
+          <strong>Step 6 – Geometric mean across bio-reps &amp; KD%:</strong><br>
+          <code>Mean Rel. Exp. = 2^(mean of log₂(Rel. Exp.)) = 2^(−mean(ΔΔCt))</code><br>
+          <code>KD% = (1 − Mean Rel. Exp.) × 100</code><br>
+          <code>SE = SD(Rel. Exp.) / √n  &nbsp;[linear scale, around geometric mean]</code><br><br>
+          <em>Geometric mean is used for fold-change data (Rel. Exp.) because 2^x is convex — arithmetic mean would overestimate the center (Jensen's inequality). For siNTC: mean(ΔΔCt) = 0 by definition, so Mean Rel. Exp. = 2⁰ = exactly 1.0 (100%).</em>
         </div>
       </div>
     </div>
@@ -532,6 +535,8 @@ let analysisResult = null;
 let resultFileStem = '';
 let showNTC        = false;
 let currentResultRefGene = '';
+let currentFilteredKd = null;
+let currentFilteredDetailRows = null;
 let detailViewState = {search:'',rowType:'all',sortCol:'',sortDir:'asc'};
 
 /* ═══════════════════════════════════════════════════════
@@ -1274,10 +1279,14 @@ function renderActiveAnalysisView(){
   const filteredKd = selectedSamples === null
     ? view.kdResults
     : view.kdResults.filter(r => selectedSamples.includes(r.siRNA));
+  currentFilteredKd = filteredKd;
   renderKDTable(filteredKd);
-  renderDetailTable(view.detailRows);
+  currentFilteredDetailRows = selectedSamples === null
+    ? view.detailRows
+    : view.detailRows.filter(r => selectedSamples.includes(r.treatment));
+  renderDetailTable(currentFilteredDetailRows);
   renderSummaryCards(filteredKd);
-  requestAnimationFrame(()=>renderCharts(filteredKd));
+  renderCharts(filteredKd);
 }
 
 function onDisplayedRefGeneChange(refGene){
@@ -1510,7 +1519,8 @@ function runAnalysis(){
           relExps.push(Math.pow(2,-(dct - ntcRef)));
         });
         if(!relExps.length) return;
-        const meanRE = relExps.reduce((a,b)=>a+b,0)/relExps.length;
+        const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
+        const meanRE = Math.pow(2, meanLog2); // geometric mean: 2^(mean_log2) = 2^(-mean_ΔΔCt)
         const seRE = relExps.length>1
           ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
           : NaN;
@@ -1575,7 +1585,8 @@ function runAnalysis(){
           });
         });
         if(!relExps.length) return;
-        const meanRE = relExps.reduce((a,b)=>a+b,0)/relExps.length;
+        const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
+        const meanRE = Math.pow(2, meanLog2); // geometric mean: 2^(mean_log2) = 2^(-mean_ΔΔCt)
         const seRE = relExps.length>1
           ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
           : NaN;
@@ -1617,7 +1628,6 @@ function runAnalysis(){
         });
       });
     });
-
     return {refGene:refGeneInput, kdResults, ntcResults, detailRows};
   }
 
@@ -1727,12 +1737,14 @@ function renderDetailTable(rows){
 
 function resetDetailView(){
   detailViewState={search:'',rowType:'all',sortCol:'',sortDir:'asc'};
-  if(analysisResult&&analysisResult.detailRows)renderDetailTable(analysisResult.detailRows);
+  const rows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
+  if(rows) renderDetailTable(rows);
 }
 
 function refreshDetailTable(){
-  if(!analysisResult||!analysisResult.detailRows||!analysisResult.detailRows.length)return;
-  const allRows=analysisResult.detailRows;
+  const rows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
+  if(!rows||!rows.length)return;
+  const allRows=rows;
   const cols=Object.keys(allRows[0]);
   const searchEl=document.getElementById('detailSearch');
   const rowTypeEl=document.getElementById('detailRowType');
@@ -1745,7 +1757,7 @@ function refreshDetailTable(){
   detailViewState.sortDir=sortDirEl?.value||'asc';
 
   const kw=detailViewState.search.toLowerCase();
-  let rows=[...allRows].filter(r=>{
+  let filtered=[...allRows].filter(r=>{
     if(detailViewState.rowType!=='all' && String(r.row_type||'')!==detailViewState.rowType)return false;
     if(!kw)return true;
     return cols.some(c=>String(r[c]??'').toLowerCase().includes(kw));
@@ -1753,7 +1765,7 @@ function refreshDetailTable(){
 
   const sc=detailViewState.sortCol;
   const dir=detailViewState.sortDir==='desc'?-1:1;
-  rows.sort((a,b)=>{
+  filtered.sort((a,b)=>{
     const av=String(a[sc]??'');
     const bv=String(b[sc]??'');
     const an=Number(av),bn=Number(bv);
@@ -1763,9 +1775,9 @@ function refreshDetailTable(){
   });
 
   let html='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
-  rows.forEach(r=>{ html+='<tr>'+cols.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>'; });
+  filtered.forEach(r=>{ html+='<tr>'+cols.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>'; });
   document.getElementById('detailTable').innerHTML=html+'</tbody>';
-  document.getElementById('detailCount').textContent=`${rows.length} / ${allRows.length} rows`;
+  document.getElementById('detailCount').textContent=`${filtered.length} / ${allRows.length} rows`;
 }
 
 function renderSummaryCards(kd){
@@ -1790,19 +1802,24 @@ function renderCharts(kd){
   const refGene = (analysisResult&&analysisResult.refGene)||'';
   const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
   const ntcData = (showNTC && analysisResult&&analysisResult.ntcResults)||[];
-  const ntcSorted=[...ntcData].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
-  const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
-  /* prepend NTC entries (gray) before colored entries */
-  const allSorted=[...ntcSorted,...sorted];
+  const activePrimers = new Set(kd.map(r=>r.primer));
+  const ntcByPrimer=[...ntcData].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
+  const kdByPrimer=[...kd].sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
+  /* group by primer: NTC first, then siRNA entries — NTC sits next to its target */
+  const allSorted=[], isNTC=[];
+  [...activePrimers].sort((a,b)=>a.localeCompare(b)).forEach(primer=>{
+    ntcByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTC.push(true);});
+    kdByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTC.push(false);});
+  });
   const nGroups = allSorted.length;
-  const chartW = Math.max(700, nGroups * 90);
+  const PX_PER_GROUP = 60;  // px per bar/group; raise to spread out, lower to compact
+  const chartW = Math.max(600, nGroups * PX_PER_GROUP);
   const chartH = Math.max(500, Math.min(900, 440 + nGroups * 6));
   const labels =allSorted.map(r=>`${r.siRNA}<br>(${r.primer})`);
 
   const kdVals =allSorted.map(r=>+r.kd.toFixed(2));
   const seKDPct=allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
   const seExprPct=allSorted.map(r=>isNaN(r.seRE)?null:+(r.seRE*100).toFixed(2));
-  const isNTC  =allSorted.map((_,i)=>i<ntcSorted.length);
   const colors =allSorted.map((r,i)=>isNTC[i]?'#9ca3af':r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
   const fnt={family:'"Segoe UI",-apple-system,BlinkMacSystemFont,sans-serif',color:'#334155'};
   const axBase={gridcolor:'#e8edf3',linecolor:'#d0d7e3',tickfont:{size:11,color:'#64748b'},zeroline:false};
@@ -1875,7 +1892,7 @@ function toggleNTC(){
   showNTC=!showNTC;
   const label=showNTC?'Hide NTC':'Show NTC';
   document.querySelectorAll('#card4 .tab-panel button[onclick="toggleNTC()"]').forEach(b=>b.textContent=label);
-  if(analysisResult) renderCharts(analysisResult.kdResults);
+  if(analysisResult) renderCharts(currentFilteredKd||analysisResult.kdResults);
 }
 
 function toggleMappingOptions(){
@@ -1942,14 +1959,28 @@ function exportPrismFig(chartId){
   if(!analysisResult){ btnFlash(prismBtn,'Run analysis first'); return; }
   const isRelChart = chartId==='figRel';
 
-  const ntcData=(showNTC&&analysisResult.ntcResults)||[];
-  const ntcSorted=[...ntcData].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
-  const sorted=[...analysisResult.kdResults].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  const kd = currentFilteredKd || analysisResult.kdResults;
+  const activePrimers = new Set(kd.map(r=>r.primer));
+  // ntcSorted for display (respects showNTC toggle)
+  const ntcDisplay=(showNTC&&analysisResult.ntcResults)||[];
+  const ntcSorted=[...ntcDisplay].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
   const allSorted=[...ntcSorted,...sorted];
+
+  // Normalize reps by the NTC arithmetic mean per primer so that Prism's arithmetic mean
+  // of NTC = exactly 1.0. Always use analysisResult.ntcResults (independent of showNTC).
+  const ntcRepArithMean = {};
+  (analysisResult.ntcResults||[]).filter(r=>activePrimers.has(r.primer)).forEach(r => {
+    if(r.reps.length && ntcRepArithMean[r.primer]===undefined)
+      ntcRepArithMean[r.primer] = r.reps.reduce((a,b)=>a+b,0)/r.reps.length;
+  });
 
   const groups=allSorted.map(r=>({
     title:`${r.siRNA} (${r.primer})`,
-    vals:r.reps.map(v=>isRelChart?+(v*100).toFixed(4):+((1-v)*100).toFixed(4))
+    vals:r.reps.map(v=>{
+      const norm = ntcRepArithMean[r.primer] ?? 1;
+      return isRelChart ? +(v/norm).toFixed(6) : +(1 - v/norm).toFixed(6);
+    })
   }));
   if(!groups.length){ btnFlash(prismBtn,'No data to export'); return; }
 
@@ -1959,7 +1990,7 @@ function exportPrismFig(chartId){
   const base=resultFileStem||'qPCR';
   const refSuffix=(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_');
   const suffix=`${refSuffix}_${isRelChart?'Expression_NTC':chartId==='figDot'?'KD_Replicates':'KD_BarChart'}`;
-  const yLabel=isRelChart?'Expression (% of NTC)':'KD Efficiency (%)';
+  const yLabel=isRelChart?'Expression (relative to NTC)':'KD Efficiency (fraction)';
 
   const newUID=()=>crypto.randomUUID().toUpperCase();
   const randHex32=()=>Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -2056,7 +2087,8 @@ function downloadKDcsv(){
   let csv='Housekeeping_Gene,siRNA,Target_Primer,Expression_pct_of_NTC,SE_pct_of_NTC,Mean_RelExp,SE_RelExp,KD_pct,KD_SE_pct,N,Individual_RelExp\n';
   const fmtSE = v => isNaN(v)?'N/A':v.toFixed(4);
   const fmtSE2= v => isNaN(v)?'N/A':v.toFixed(2);
-  analysisResult.kdResults.forEach(r=>{
+  const kdRows = currentFilteredKd || analysisResult.kdResults;
+  kdRows.forEach(r=>{
     csv+=`${currentResultRefGene},${r.siRNA},${r.primer},${(r.meanRE*100).toFixed(4)},${fmtSE(r.seRE*100)},${r.meanRE.toFixed(6)},${fmtSE(r.seRE)},`
       +`${r.kd.toFixed(2)},${fmtSE2(r.kdSe)},${r.n},`
         +`"${r.reps.map(v=>v.toFixed(4)).join(';')}"\n`;
@@ -2064,11 +2096,12 @@ function downloadKDcsv(){
   dl(csv,`siRNA_KD_summary_${(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.csv`);
 }
 function downloadDetailCsv(){
-  if(!analysisResult||!analysisResult.detailRows.length) return;
-  const cols=Object.keys(analysisResult.detailRows[0]);
+  const detailRows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
+  if(!detailRows||!detailRows.length) return;
+  const cols=Object.keys(detailRows[0]);
   const q=v=>{const s=String(v??'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s;};
   let csv=cols.map(q).join(',')+'\n';
-  analysisResult.detailRows.forEach(r=>{ csv+=cols.map(c=>q(r[c])).join(',')+'\n'; });
+  detailRows.forEach(r=>{ csv+=cols.map(c=>q(r[c])).join(',')+'\n'; });
   dl(csv,`siRNA_KD_detail_${(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.csv`);
 }
 function dl(text,name){
@@ -2199,8 +2232,12 @@ function switchTabGroup(groupId, tabId, btn){
   group.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   group.querySelectorAll('.tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(tabId).classList.add('active'); btn.classList.add('active');
-  const plotEl=document.getElementById(tabId).querySelector('[id^="plot"]');
-  if(plotEl&&plotEl._fullLayout) Plotly.Plots.resize(plotEl);
+  if(groupId==='resGroup2' && currentFilteredKd){
+    renderCharts(currentFilteredKd);
+  } else {
+    const plotEl=document.getElementById(tabId).querySelector('[id^="plot"]');
+    if(plotEl&&plotEl._fullLayout) Plotly.Plots.resize(plotEl);
+  }
 }
 function switchResTab(id,btn){ switchTabGroup('resGroup1',id,btn); }
 function switchFigTab(id,btn){ switchTabGroup('resGroup2',id,btn); }
