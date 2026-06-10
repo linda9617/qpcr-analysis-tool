@@ -265,7 +265,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <div class="uz-title">Click or drag Metadata file here</div>
           <small>Required columns: Well · siRNA · Primer</small>
         </div>
-        <div id="layoutFileTag" style="display:none;margin-top:7px"></div>
         <div id="layoutFileChips" class="file-chips" style="display:none"></div>
         <div id="layoutStatus" class="hidden" style="margin-top:8px"></div>
         <div id="layoutMapperWrap" style="display:none;margin-top:10px">
@@ -285,7 +284,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <div class="uz-title">Click or drag Result Excel here</div>
           <small>Prefer sheet "Results" · key columns include Well Position + CT value</small>
         </div>
-        <div id="resultFileTag" style="display:none;margin-top:7px"></div>
         <div id="resultFileChips" class="file-chips" style="display:none"></div>
         <div id="resultStatus" class="hidden" style="margin-top:8px"></div>
         <div id="resultMapperWrap" style="display:none;margin-top:10px">
@@ -345,6 +343,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </div>
 
     <div id="uploadMergeStatus" class="hidden" style="margin-top:12px"></div>
+    <div id="colMismatchWarn" style="display:none;margin-top:8px"></div>
     <div id="multiPlateNotice" class="multi-plate-notice" style="display:none;margin-top:8px"></div>
 
   </div>
@@ -675,6 +674,8 @@ function invalidateMerge(){
   // Clear any existing merge status so user sees a neutral state
   const ms = document.getElementById('uploadMergeStatus');
   if(ms) ms.classList.add('hidden');
+  const cw = document.getElementById('colMismatchWarn');
+  if(cw){ cw.style.display = 'none'; cw.innerHTML = ''; }
 }
 
 /* Remove one file from the layout list */
@@ -1441,12 +1442,77 @@ function confirmMapping(){
       document.getElementById('uploadMergeStatus').classList.remove('hidden');
       return;
     }
+    // Column-name consistency check (non-blocking warning)
+    const colWarns = checkColumnConsistency(savedMappingConfig);
+    const warnEl = document.getElementById('colMismatchWarn');
+    if(warnEl){
+      if(colWarns.length){
+        warnEl.innerHTML = `<div style="background:#fff8e1;border:1px solid #ffb300;border-radius:6px;padding:8px 12px;font-size:.82rem;color:#5d4037">`+
+          `⚠️ <strong>Column name mismatch across plates</strong> — same index maps to different headers. Mapping applied as-is; verify results carefully.<ul style="margin:5px 0 0 16px">`+
+          colWarns.map(w => `<li>${w}</li>`).join('') + `</ul></div>`;
+        warnEl.style.display = 'block';
+      } else {
+        warnEl.style.display = 'none';
+        warnEl.innerHTML = '';
+      }
+    }
   } else {
     multiPlateMergedRows = [mergedRows];
   }
 
   showConfig();
   setStep(3);
+}
+
+/* Check if mapped column indices resolve to the same header name across plates */
+function checkColumnConsistency(cfg){
+  const warns = [];
+  const p1rHdr = (resultAoa && resultHdrIdx >= 0) ? resultAoa[resultHdrIdx] : [];
+  const p1lHdr = (layoutAoa && layoutHdrIdx >= 0) ? layoutAoa[layoutHdrIdx]  : [];
+  const rChecks = [
+    {idx: cfg.rWellCol, label: 'Well (Result)'},
+    {idx: cfg.rCtCol,   label: 'CT'},
+    ...(cfg.withMeta ? [
+      {idx: cfg.rSiRNACol,  label: 'Sample Name'},
+      {idx: cfg.rPrimerCol, label: 'Target Name'}
+    ] : [])
+  ];
+  const lChecks = cfg.withMeta ? [] : [
+    {idx: cfg.lWellCol,   label: 'Well (Metadata)'},
+    {idx: cfg.lSiRNACol,  label: 'Sample'},
+    {idx: cfg.lPrimerCol, label: 'Primer/Target'}
+  ];
+  const total = computeTotalPlates();
+  for(let pl = 2; pl <= total; pl++){
+    const lf = layoutFiles.find(f => f.assignedPlate === pl);
+    const rf = resultFiles.find(f => f.assignedPlate === pl);
+    if(!rf?.aoa || rf.hdrIdx < 0) continue;
+    const pRHdr = rf.aoa[rf.hdrIdx] || [];
+    for(const {idx, label} of rChecks){
+      const p1n = String(p1rHdr[idx] ?? '').trim();
+      if(idx >= pRHdr.length){
+        warns.push(`Plate ${pl} – "${label}": column ${idx+1} out of range (plate has ${pRHdr.length} columns)`);
+      } else {
+        const pn = String(pRHdr[idx] ?? '').trim();
+        if(pn.toLowerCase() !== p1n.toLowerCase())
+          warns.push(`Plate ${pl} – "${label}": col ${idx+1} is <strong>${esc(pn)}</strong> (Plate 1: ${esc(p1n)})`);
+      }
+    }
+    if(!cfg.withMeta && lf?.aoa && lf.hdrIdx >= 0){
+      const pLHdr = lf.aoa[lf.hdrIdx] || [];
+      for(const {idx, label} of lChecks){
+        const p1n = String(p1lHdr[idx] ?? '').trim();
+        if(idx >= pLHdr.length){
+          warns.push(`Plate ${pl} – "${label}": column ${idx+1} out of range (plate has ${pLHdr.length} columns)`);
+        } else {
+          const pn = String(pLHdr[idx] ?? '').trim();
+          if(pn.toLowerCase() !== p1n.toLowerCase())
+            warns.push(`Plate ${pl} – "${label}": col ${idx+1} is <strong>${esc(pn)}</strong> (Plate 1: ${esc(p1n)})`);
+        }
+      }
+    }
+  }
+  return warns;
 }
 
 function buildMergedPreview(total, active, skipped, noCt, mode){
@@ -2935,17 +3001,6 @@ function markZoneDone(id, msg){
   z.classList.add('done');
   z.querySelector('.uz-title').textContent = msg;
   z.querySelector('.uz-icon').textContent = '✅';
-  // show inline file tag with delete button
-  const tagId   = id === 'zoneLayout' ? 'layoutFileTag' : 'resultFileTag';
-  const clearFn = id === 'zoneLayout' ? 'clearLayout()' : 'clearResult()';
-  const label   = msg.replace(/^✅\s*/,'');
-  const tag = document.getElementById(tagId);
-  if(tag){
-    tag.style.display = 'flex';
-    tag.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0faf2;border:1px solid #34a853;border-radius:20px;padding:3px 10px 3px 12px;font-size:.78rem;color:#1b5e20;max-width:100%">`+
-      `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px" title="${label}">${label}</span>`+
-      `<button onclick="${clearFn}" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;font-size:1rem;color:#555" title="Remove file">&times;</button></span>`;
-  }
 }
 function clearLayout(){
   layoutAoa = null; layoutHdrIdx = -1;
@@ -2956,8 +3011,6 @@ function clearLayout(){
   z.classList.remove('done');
   z.querySelector('.uz-title').textContent = 'Click or drag Metadata file here';
   z.querySelector('.uz-icon').textContent = '📋';
-  const tag = document.getElementById('layoutFileTag');
-  if(tag){ tag.style.display='none'; tag.innerHTML=''; }
   const chips = document.getElementById('layoutFileChips');
   if(chips){ chips.style.display='none'; chips.innerHTML=''; }
   document.getElementById('layoutStatus').classList.add('hidden');
@@ -2974,8 +3027,6 @@ function clearResult(){
   z.classList.remove('done');
   z.querySelector('.uz-title').textContent = 'Click or drag Result Excel here';
   z.querySelector('.uz-icon').textContent = '📊';
-  const tag = document.getElementById('resultFileTag');
-  if(tag){ tag.style.display='none'; tag.innerHTML=''; }
   const chips = document.getElementById('resultFileChips');
   if(chips){ chips.style.display='none'; chips.innerHTML=''; }
   document.getElementById('resultStatus').classList.add('hidden');
@@ -3023,30 +3074,18 @@ function switchFigTab(id,btn){ switchTabGroup('resGroup2',id,btn); }
    Rows A–K on a 96/384-well plate, cols 1–8 per group
 ═══════════════════════════════════════════════════════ */
 function loadTemplateData(){
-  // ── Layout: parse LAYOUT_TEMPLATE_CSV ──────────────────────────────
-  const csvLines = LAYOUT_TEMPLATE_CSV.split('\n');
-  layoutAoa    = csvLines.map(l => l.split(','));
-  layoutHdrIdx = detectLayoutHeader(layoutAoa);
-  markZoneDone('zoneLayout', '\u2705 Metadata_Template.csv');
-  document.getElementById('layoutStatus').classList.add('hidden');
-  tryShowLayoutMapper();
+  // Layout: wrap CSV string as a File and go through the normal upload pipeline
+  const csvBlob = new Blob([LAYOUT_TEMPLATE_CSV], {type:'text/csv'});
+  const layoutFile = new File([csvBlob], 'Metadata_Template.csv', {type:'text/csv'});
+  processLayoutFiles([layoutFile]);
 
-  // ── Result: decode RESULT_TEMPLATE_B64 → AoA ────────────────────────
+  // Result: decode base64, wrap as a File and go through the normal upload pipeline
   const binary = atob(RESULT_TEMPLATE_B64);
   const bytes  = new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-  const wb = XLSX.read(bytes, {type:'array'});
-  const sheetName = chooseBestResultSheet(wb) || wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  resultAoa    = trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''}));
-  resultHdrIdx = detectResultHeader(resultAoa);
-  resultFileStem = 'Template_Result';
-  markZoneDone('zoneResult', '\u2705 Result_Template.xlsx');
-  document.getElementById('resultStatus').classList.add('hidden');
-  document.getElementById('hdrOverrideBox').style.display = 'none';
-  if(resultHdrIdx >= 0)
-    document.getElementById('hdrRowInput').value = resultHdrIdx + 1;
-  tryShowResultMapper();
+  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const xlsxBlob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const resultFile = new File([xlsxBlob], 'Result_Template.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  processResultFiles([resultFile]);
 }
 
 function downloadLayoutTemplate(){
