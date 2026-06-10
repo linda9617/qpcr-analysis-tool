@@ -63,6 +63,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
                  align-items:center;justify-content:center;gap:6px}
     .upload-zone:hover,.upload-zone.drag-over{background:var(--primary-lt);border-color:var(--primary)}
     .upload-zone.done{border-color:#34a853;background:#f0faf2}
+    .upload-zone.done.drag-over{background:var(--primary-lt);border-color:var(--primary);border-style:dashed}
     .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
     .uz-icon{font-size:2.2rem}
     .uz-title{font-weight:700;font-size:.9rem;color:var(--primary)}
@@ -203,6 +204,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .cm-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.75rem;margin-top:10px}
     .cm-leg-item{display:flex;align-items:center;gap:5px}
     .cm-swatch{width:14px;height:14px;border-radius:3px}
+
+    /* ── Multi-file plate-assignment chips ── */
+    .file-chips{display:flex;flex-direction:column;gap:5px;margin-top:7px}
+    .file-chip{display:flex;align-items:center;gap:7px;padding:4px 10px;background:#f7f9fc;border:1px solid var(--border);border-radius:6px;font-size:.79rem}
+    .chip-icon{font-size:.85rem;flex-shrink:0;width:16px;text-align:center}
+    .chip-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+    .chip-plate-sel{padding:2px 6px;border:1px solid var(--border);border-radius:5px;font-size:.76rem;background:var(--surface);color:var(--primary);font-weight:600;cursor:pointer}
+    .chip-del{background:none;border:none;color:#bbb;font-size:.9rem;cursor:pointer;padding:0 3px;line-height:1;flex-shrink:0;border-radius:3px;transition:color .15s}
+    .chip-del:hover{color:#e53935}
+    .ntc-mode-section{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+    .ntc-mode-section label{font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-right:16px}
+    .multi-plate-notice{font-size:.8rem;padding:6px 10px;background:#eff3fa;border:1px solid #c8d7f0;border-radius:6px;margin-top:8px;color:#334155}
   </style>
 </head>
 <body>
@@ -247,12 +260,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div id="layoutCol">
         <p style="font-weight:700;margin-bottom:8px">Metadata File <span style="font-weight:400;color:#888">(CSV / XLS / XLSX)</span></p>
         <div class="upload-zone" id="zoneLayout">
-          <input type="file" id="fileLayout" accept=".csv,.xls,.xlsx" onchange="handleLayout(event)"/>
+          <input type="file" id="fileLayout" accept=".csv,.xls,.xlsx" multiple onchange="handleLayout(event)"/>
           <div class="uz-icon">📋</div>
           <div class="uz-title">Click or drag Metadata file here</div>
           <small>Required columns: Well · siRNA · Primer</small>
         </div>
         <div id="layoutFileTag" style="display:none;margin-top:7px"></div>
+        <div id="layoutFileChips" class="file-chips" style="display:none"></div>
         <div id="layoutStatus" class="hidden" style="margin-top:8px"></div>
         <div id="layoutMapperWrap" style="display:none;margin-top:10px">
           <div class="col-mapper">
@@ -266,12 +280,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div>
         <p style="font-weight:700;margin-bottom:8px">Result File <span style="font-weight:400;color:#888">(XLS / XLSX)</span></p>
         <div class="upload-zone" id="zoneResult">
-          <input type="file" id="fileResult" accept=".xlsx,.xls" onchange="handleResult(event)"/>
+          <input type="file" id="fileResult" accept=".xlsx,.xls" multiple onchange="handleResult(event)"/>
           <div class="uz-icon">📊</div>
           <div class="uz-title">Click or drag Result Excel here</div>
           <small>Prefer sheet "Results" · key columns include Well Position + CT value</small>
         </div>
         <div id="resultFileTag" style="display:none;margin-top:7px"></div>
+        <div id="resultFileChips" class="file-chips" style="display:none"></div>
         <div id="resultStatus" class="hidden" style="margin-top:8px"></div>
         <div id="resultMapperWrap" style="display:none;margin-top:10px">
           <div class="col-mapper">
@@ -330,6 +345,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </div>
 
     <div id="uploadMergeStatus" class="hidden" style="margin-top:12px"></div>
+    <div id="multiPlateNotice" class="multi-plate-notice" style="display:none;margin-top:8px"></div>
+
   </div>
 
   <!-- ═══ CARD 3 · Configure ═══ -->
@@ -368,6 +385,21 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       </div>
       <!-- ── Omit Well ── -->
       <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+
+      <!-- ── Global NTC mode (multi-plate only) ── -->
+      <div id="globalNtcWrap" class="ntc-mode-section" style="display:none">
+        <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">NTC Normalization Mode</label>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0">
+          <label><input type="radio" name="ntcMode" value="per-plate" checked onchange="onNtcModeChange()"> Per-plate NTC <span style="color:#888;font-size:.78rem">(default — each plate uses its own siNTC)</span></label>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px">
+          <label><input type="radio" name="ntcMode" value="global" onchange="onNtcModeChange()"> Global NTC — all plates use reference plate's siNTC:</label>
+          <span id="globalNtcPlateSelector" style="display:none">
+            <select id="globalNtcPlateSelect" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.8rem" onchange="globalNtcPlateIdx=+this.value"></select>
+          </span>
+        </div>
+      </div>
+
         <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">Omit Well</label>
         <div class="omit-toolbar">
           <input type="text" id="omitSearch" placeholder="Search by well / siRNA / primer / Ct" oninput="filterOmitList()"/>
@@ -539,26 +571,340 @@ let currentFilteredKd = null;
 let currentFilteredDetailRows = null;
 let detailViewState = {search:'',rowType:'all',sortCol:'',sortDir:'asc'};
 
+/* ── Multi-plate state ── */
+let layoutFiles       = []; // [{file, aoa, hdrIdx, assignedPlate (1-based)}]
+let resultFiles       = []; // [{file, aoa, hdrIdx, fileStem, assignedPlate}]
+let multiPlateMergedRows = []; // [plate1_mergedRows, plate2_mergedRows, ...]
+let isMultiPlate      = false;
+let savedMappingConfig = null;
+let ntcMode           = 'per-plate'; // 'per-plate' | 'global'
+let globalNtcPlateIdx = 0;
+
 /* ═══════════════════════════════════════════════════════
    DRAG & DROP
 ═══════════════════════════════════════════════════════ */
-setupDrop('zoneLayout', f => handleLayoutFile(f));
-setupDrop('zoneResult', f => handleResultFile(f));
+setupDrop('zoneLayout', files => processLayoutFiles(files));
+setupDrop('zoneResult', files => processResultFiles(files));
 function setupDrop(id, cb){
   const z = document.getElementById(id);
   z.addEventListener('dragover',  e => { e.preventDefault(); z.classList.add('drag-over'); });
-  z.addEventListener('dragleave', ()  => z.classList.remove('drag-over'));
+  z.addEventListener('dragleave', e => { if(!z.contains(e.relatedTarget)) z.classList.remove('drag-over'); });
   z.addEventListener('drop', e => {
     e.preventDefault(); z.classList.remove('drag-over');
-    if(e.dataTransfer.files[0]) cb(e.dataTransfer.files[0]);
+    const files = [...e.dataTransfer.files];
+    if(files.length) cb(files);
   });
+}
+
+/* ═══════════════════════════════════════════════════════
+   MULTI-FILE PLATE-ASSIGNMENT SYSTEM
+═══════════════════════════════════════════════════════ */
+function computeTotalPlates(){
+  return Math.max(layoutFiles.length, resultFiles.length, 1);
+}
+function updateIsMultiPlate(){
+  isMultiPlate = computeTotalPlates() > 1;
+}
+function getPlate1LayoutFile(){ return layoutFiles.find(lf => lf.assignedPlate === 1) || null; }
+function getPlate1ResultFile(){ return resultFiles.find(rf => rf.assignedPlate === 1) || null; }
+
+/* Render file-chip list for Metadata or Result zone */
+function renderFileChips(containerId, fileList, assignFnName, removeFnName){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(!fileList.length){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  const total = computeTotalPlates();
+  const showPlate = fileList.length > 1;
+  el.innerHTML = fileList.map((lf, idx) => {
+    const plateSel = showPlate
+      ? `<select class="chip-plate-sel" onchange="${assignFnName}(${idx},+this.value)">${
+          Array.from({length:total}, (_,i) =>
+            `<option value="${i+1}"${lf.assignedPlate===i+1?' selected':''}>Plate ${i+1}</option>`
+          ).join('')
+        }</select>`
+      : '';
+    return `<div class="file-chip">
+      <span class="chip-icon">${lf.aoa ? '✅' : '⏳'}</span>
+      <span class="chip-name" title="${esc(lf.file.name)}">${esc(lf.file.name)}</span>
+      ${plateSel}
+      <button class="chip-del" onclick="${removeFnName}(${idx})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+function renderLayoutFileChips(){ renderFileChips('layoutFileChips', layoutFiles, 'assignLayoutFilePlate', 'removeLayoutFile'); }
+function renderResultFileChips(){ renderFileChips('resultFileChips', resultFiles, 'assignResultFilePlate', 'removeResultFile'); }
+
+function assignLayoutFilePlate(idx, plateNum){
+  layoutFiles[idx].assignedPlate = plateNum;
+  const p1 = getPlate1LayoutFile();
+  layoutAoa    = p1?.aoa ?? null;
+  layoutHdrIdx = p1?.hdrIdx ?? -1;
+  if(layoutAoa){ tryShowLayoutMapper(); }
+  else { document.getElementById('layoutMapperWrap').style.display = 'none'; }
+  updateIsMultiPlate();
+  renderLayoutFileChips();
+  renderResultFileChips(); // option counts may change
+  updateMultiPlateNotice();
+}
+
+function assignResultFilePlate(idx, plateNum){
+  resultFiles[idx].assignedPlate = plateNum;
+  const p1 = getPlate1ResultFile();
+  resultAoa    = p1?.aoa ?? null;
+  resultHdrIdx = p1?.hdrIdx ?? -1;
+  if(resultAoa && resultHdrIdx >= 0){ tryShowResultMapper(); }
+  else { document.getElementById('resultMapperWrap').style.display = 'none'; }
+  updateIsMultiPlate();
+  renderLayoutFileChips();
+  renderResultFileChips();
+  updateMultiPlateNotice();
+}
+
+/* Invalidate cached merge data when files change after a prior confirmation */
+function invalidateMerge(){
+  if(!multiPlateMergedRows.length && !mergedRows.length) return; // nothing to invalidate
+  multiPlateMergedRows = [];
+  mergedRows           = [];
+  savedMappingConfig   = null;
+  analysisResult       = null;
+  // Hide Configure + Results cards and reset step indicator
+  const c3 = document.getElementById('card3'); if(c3) c3.classList.add('hidden');
+  const c4 = document.getElementById('card4'); if(c4) c4.classList.add('hidden');
+  setStep(2);
+  // Clear any existing merge status so user sees a neutral state
+  const ms = document.getElementById('uploadMergeStatus');
+  if(ms) ms.classList.add('hidden');
+}
+
+/* Remove one file from the layout list */
+function removeLayoutFile(idx){
+  invalidateMerge();
+  layoutFiles.splice(idx, 1);
+  const p1 = getPlate1LayoutFile();
+  layoutAoa    = p1?.aoa ?? null;
+  layoutHdrIdx = p1?.hdrIdx ?? -1;
+  if(!layoutFiles.length){
+    const z = document.getElementById('zoneLayout');
+    z.classList.remove('done');
+    z.querySelector('.uz-title').textContent = 'Click or drag Metadata file here';
+    z.querySelector('.uz-icon').textContent = '\uD83D\uDCCB';
+    document.getElementById('layoutMapperWrap').style.display = 'none';
+  } else if(p1?.aoa){
+    const extra = layoutFiles.length > 1 ? ` + ${layoutFiles.length - 1} more` : '';
+    markZoneDone('zoneLayout', `\u2705 ${p1.file.name}${extra}`);
+    tryShowLayoutMapper();
+  } else {
+    document.getElementById('layoutMapperWrap').style.display = 'none';
+  }
+  updateIsMultiPlate();
+  renderLayoutFileChips();
+  renderResultFileChips();
+  updateMultiPlateNotice();
+}
+
+/* Remove one file from the result list */
+function removeResultFile(idx){
+  invalidateMerge();
+  resultFiles.splice(idx, 1);
+  const p1 = getPlate1ResultFile();
+  resultAoa      = p1?.aoa ?? null;
+  resultHdrIdx   = p1?.hdrIdx ?? -1;
+  resultFileStem = p1?.fileStem ?? '';
+  if(!resultFiles.length){
+    const z = document.getElementById('zoneResult');
+    z.classList.remove('done');
+    z.querySelector('.uz-title').textContent = 'Click or drag Result Excel here';
+    z.querySelector('.uz-icon').textContent = '\uD83D\uDCCA';
+    document.getElementById('resultMapperWrap').style.display = 'none';
+    document.getElementById('hdrOverrideBox').style.display = 'none';
+  } else if(p1?.aoa && p1.hdrIdx >= 0){
+    const extra = resultFiles.length > 1 ? ` + ${resultFiles.length - 1} more` : '';
+    markZoneDone('zoneResult', `\u2705 ${p1.file.name}${extra}`);
+    tryShowResultMapper();
+  } else {
+    document.getElementById('resultMapperWrap').style.display = 'none';
+  }
+  updateIsMultiPlate();
+  renderLayoutFileChips();
+  renderResultFileChips();
+  updateMultiPlateNotice();
+}
+
+function updateMultiPlateNotice(){
+  const el = document.getElementById('multiPlateNotice');
+  if(!el) return;
+  if(!isMultiPlate){ el.style.display = 'none'; return; }
+  const total     = computeTotalPlates();
+  let readyCount  = 0;
+  for(let p = 1; p <= total; p++){
+    const lf = layoutFiles.find(f => f.assignedPlate === p);
+    const rf = resultFiles.find(f => f.assignedPlate === p);
+    if(lf?.aoa && rf?.aoa && rf.hdrIdx >= 0) readyCount++;
+  }
+  el.style.display = 'block';
+  el.innerHTML = readyCount === total
+    ? `✅ All ${total} plates loaded — click <strong>Confirm &amp; Continue</strong> above to proceed`
+    : `${readyCount} of ${total} plates have both files loaded`;
+}
+
+/* Process multiple layout files — APPEND to existing list */
+function processLayoutFiles(files){
+  const existingNames = new Set(layoutFiles.map(f => f.file.name));
+  const newFiles = [...files].filter(f => !existingNames.has(f.name));
+  if(!newFiles.length) return;
+  invalidateMerge();
+  const startPlate = layoutFiles.length > 0
+    ? Math.max(...layoutFiles.map(f => f.assignedPlate)) + 1
+    : 1;
+  const startIdx = layoutFiles.length;
+  newFiles.forEach((f, i) => layoutFiles.push({file:f, aoa:null, hdrIdx:-1, assignedPlate:startPlate+i}));
+  updateIsMultiPlate();
+  renderLayoutFileChips();
+  updateMultiPlateNotice();
+  for(let i = startIdx; i < layoutFiles.length; i++) readLayoutFileAtIdx(i);
+}
+
+function readLayoutFileAtIdx(idx){
+  const lf   = layoutFiles[idx];
+  const file = lf.file;
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  const isP1  = () => lf.assignedPlate === 1;
+  function finish(aoa){
+    if(isPlateMapFormat(aoa)) aoa = parsePlateMapToList(aoa);
+    lf.aoa    = aoa;
+    lf.hdrIdx = detectLayoutHeader(aoa);
+    renderLayoutFileChips();
+    // Update zone badge whenever any file finishes loading
+    const p1f = getPlate1LayoutFile();
+    if(p1f?.aoa){
+      const extra = layoutFiles.length > 1 ? ` + ${layoutFiles.length - 1} more` : '';
+      markZoneDone('zoneLayout', `✅ ${p1f.file.name}${extra}`);
+    }
+    if(isP1()){
+      layoutAoa    = lf.aoa;
+      layoutHdrIdx = lf.hdrIdx;
+      document.getElementById('layoutStatus').classList.add('hidden');
+      tryShowLayoutMapper();
+    }
+    updateMultiPlateNotice();
+  }
+  if(ext === 'csv'){
+    reader.onload = ev => {
+      try { finish(ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').map(l=>splitCSV(l))); }
+      catch(err){ if(isP1()) showStatus('layoutStatus','error','❌ '+err.message); }
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        finish(trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''})));
+      } catch(err){ if(isP1()) showStatus('layoutStatus','error','❌ '+err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+/* Process multiple result files — APPEND to existing list */
+function processResultFiles(files){
+  const existingNames = new Set(resultFiles.map(f => f.file.name));
+  const newFiles = [...files].filter(f => !existingNames.has(f.name));
+  if(!newFiles.length) return;
+  invalidateMerge();
+  const startPlate = resultFiles.length > 0
+    ? Math.max(...resultFiles.map(f => f.assignedPlate)) + 1
+    : 1;
+  const startIdx = resultFiles.length;
+  newFiles.forEach((f, i) => resultFiles.push({file:f, aoa:null, hdrIdx:-1, fileStem:f.name.replace(/\.[^.]+$/,''), assignedPlate:startPlate+i}));
+  updateIsMultiPlate();
+  renderResultFileChips();
+  updateMultiPlateNotice();
+  for(let i = startIdx; i < resultFiles.length; i++) readResultFileAtIdx(i);
+}
+
+function readResultFileAtIdx(idx){
+  const rf   = resultFiles[idx];
+  const file = rf.file;
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  const isP1  = () => rf.assignedPlate === 1;
+  function finish(aoa, label){
+    rf.aoa    = aoa;
+    rf.hdrIdx = detectResultHeader(aoa);
+    renderResultFileChips();
+    // Update zone badge whenever any file finishes loading
+    const p1f = getPlate1ResultFile();
+    if(p1f?.aoa){
+      const extra = resultFiles.length > 1 ? ` + ${resultFiles.length - 1} more` : '';
+      markZoneDone('zoneResult', `✅ ${p1f.file.name}${extra}`);
+    }
+    if(isP1()){
+      resultAoa    = rf.aoa;
+      resultHdrIdx = rf.hdrIdx;
+      resultFileStem = rf.fileStem;
+      if(rf.hdrIdx < 0){
+        showStatus('resultStatus','warning','⚠️ Header NOT detected — open Mapping Options to set manually.');
+      } else {
+        document.getElementById('resultStatus').classList.add('hidden');
+      }
+      document.getElementById('hdrOverrideBox').style.display = 'none';
+      if(rf.hdrIdx >= 0) document.getElementById('hdrRowInput').value = rf.hdrIdx + 1;
+      tryShowResultMapper();
+    }
+    updateMultiPlateNotice();
+  }
+  if(ext === 'csv'){
+    reader.onload = ev => {
+      try { finish(ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').map(l=>splitCSV(l)), file.name); }
+      catch(err){ if(isP1()) showStatus('resultStatus','error','❌ '+err.message); }
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+        const sheetName = chooseBestResultSheet(wb) || wb.SheetNames[0];
+        const ws = wb.Sheets[sheetName];
+        finish(trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''})), `Sheet "${sheetName}"`);
+      } catch(err){ if(isP1()) showStatus('resultStatus','error','❌ '+err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function onNtcModeChange(){
+  ntcMode = document.querySelector('input[name="ntcMode"]:checked')?.value || 'per-plate';
+  const sel = document.getElementById('globalNtcPlateSelector');
+  if(sel) sel.style.display = ntcMode === 'global' ? 'inline-flex' : 'none';
+}
+
+function populateGlobalNtcPlateSelect(){
+  const sel = document.getElementById('globalNtcPlateSelect');
+  if(!sel) return;
+  const total = computeTotalPlates();
+  sel.innerHTML = Array.from({length:total}, (_, i) =>
+    `<option value="${i}"${i===globalNtcPlateIdx?' selected':''}>${i===0?'Plate 1':resultFiles.find(f=>f.assignedPlate===i+1)?.file.name||'Plate '+(i+1)}</option>`
+  ).join('');
 }
 
 /* ═══════════════════════════════════════════════════════
    FILE READERS
 ═══════════════════════════════════════════════════════ */
-function handleLayout(e){ if(e.target.files[0]) handleLayoutFile(e.target.files[0]); }
-function handleResult(e){ if(e.target.files[0]) handleResultFile(e.target.files[0]); }
+function handleLayout(e){
+  const files = [...e.target.files];
+  if(files.length) processLayoutFiles(files);
+}
+function handleResult(e){
+  const files = [...e.target.files];
+  if(files.length) processResultFiles(files);
+}
+
+/* Backward-compat wrappers used by loadTemplateData() and any other single-file callers */
+function handleLayoutFile(file){ processLayoutFiles([file]); }
+function handleResultFile(file){ processResultFiles([file]); }
 
 function normalizeHdrKey(v){
   return String(v || '')
@@ -572,6 +918,7 @@ function isCtNumber(v){
   const n = Number(v);
   return Number.isFinite(n) && n > 0 && n < 60;
 }
+
 
 function chooseBestResultSheet(wb){
   const names = wb.SheetNames || [];
@@ -1060,6 +1407,44 @@ function confirmMapping(){
     `<span style="color:#ffa000">${noCtCount} undetermined CT</span>`);
   document.getElementById('uploadMergeStatus').classList.remove('hidden');
 
+  /* ── Multi-plate: save mapping config and process additional plates ── */
+  if(isMultiPlate){
+    savedMappingConfig = {
+      withMeta,
+      rWellCol:  +document.getElementById('rmap_well').value,
+      rCtCol:    +document.getElementById('rmap_ct').value,
+      lWellCol:   withMeta ? 0 : +document.getElementById('lmap_well').value,
+      lSiRNACol:  withMeta ? 0 : +document.getElementById('lmap_sirna').value,
+      lPrimerCol: withMeta ? 0 : +document.getElementById('lmap_primer').value,
+      rSiRNACol:  withMeta ? +document.getElementById('rmap_sirna').value  : 0,
+      rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0
+    };
+    multiPlateMergedRows = [mergedRows];
+    const total = computeTotalPlates();
+    let anyFail = false;
+    for(let pl = 2; pl <= total; pl++){
+      const lf = layoutFiles.find(f => f.assignedPlate === pl);
+      const rf = resultFiles.find(f => f.assignedPlate === pl);
+      if(!lf?.aoa || !rf?.aoa || rf.hdrIdx < 0){
+        showStatus('uploadMergeStatus','error',
+          `❌ Plate ${pl}: both metadata and result files must be loaded with detectable headers.`);
+        anyFail = true;
+        continue;
+      }
+      const plateRows = buildMergedRowsFromConfig(
+        {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
+        savedMappingConfig
+      );
+      multiPlateMergedRows.push(plateRows);
+    }
+    if(anyFail){
+      document.getElementById('uploadMergeStatus').classList.remove('hidden');
+      return;
+    }
+  } else {
+    multiPlateMergedRows = [mergedRows];
+  }
+
   showConfig();
   setStep(3);
 }
@@ -1097,6 +1482,44 @@ function buildMergedPreview(total, active, skipped, noCt, mode){
   div.innerHTML = html + '</tbody></table></div>';
 }
 
+/* Build mergedRows for an extra plate using the saved mapping config from Plate 1 */
+function buildMergedRowsFromConfig(p, cfg){
+  const rows = [];
+  if(cfg.withMeta){
+    for(let i = p.resultHdrIdx + 1; i < p.resultAoa.length; i++){
+      const row    = p.resultAoa[i];
+      const well   = normWell(String(row[cfg.rWellCol]  || '').trim());
+      if(!well) continue;
+      const siRNA  = String(row[cfg.rSiRNACol]  || '').trim();
+      const primer = String(row[cfg.rPrimerCol] || '').trim();
+      const ctRaw  = String(row[cfg.rCtCol]     || '').trim();
+      const ct     = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw)) ? NaN : parseFloat(ctRaw);
+      const active = siRNA !== '' && primer !== '';
+      rows.push({well, siRNA, primer, ct, active});
+    }
+  } else {
+    const ctMap = {};
+    for(let i = p.resultHdrIdx + 1; i < p.resultAoa.length; i++){
+      const row   = p.resultAoa[i];
+      const well  = normWell(String(row[cfg.rWellCol] || '').trim());
+      const ctRaw = String(row[cfg.rCtCol] || '').trim();
+      if(!well) continue;
+      ctMap[well] = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw)) ? NaN : parseFloat(ctRaw);
+    }
+    for(let i = p.layoutHdrIdx + 1; i < p.layoutAoa.length; i++){
+      const row    = p.layoutAoa[i];
+      const well   = normWell(String(row[cfg.lWellCol]   || '').trim());
+      if(!well) continue;
+      const siRNA  = String(row[cfg.lSiRNACol]  || '').trim();
+      const primer = String(row[cfg.lPrimerCol] || '').trim();
+      const ct     = ctMap.hasOwnProperty(well) ? ctMap[well] : NaN;
+      const active = siRNA !== '' && primer !== '';
+      rows.push({well, siRNA, primer, ct, active});
+    }
+  }
+  return rows;
+}
+
 /* ═══════════════════════════════════════════════════════
    CONFIGURE
 ═══════════════════════════════════════════════════════ */
@@ -1104,7 +1527,10 @@ function showConfig(){
   document.getElementById('card3').classList.remove('hidden');
   document.getElementById('card3').scrollIntoView({behavior:'smooth'});
 
-  const active     = mergedRows.filter(r => r.active && !isNaN(r.ct));
+  /* Multi-plate: combine all plates' data for dropdowns */
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+
+  const active     = allMergedRows.filter(r => r.active && !isNaN(r.ct));
   const primers    = [...new Set(active.map(r=>r.primer))];
   const sampleNames= [...new Set(active.map(r=>r.siRNA))];
   const treatments = [...new Set(sampleNames.map(treatmentOf))];
@@ -1136,21 +1562,34 @@ function showConfig(){
     updateSampleLabel();
   }
 
+  /* Global NTC section — visible only in multi-plate mode */
+  const globalNtcWrap = document.getElementById('globalNtcWrap');
+  if(globalNtcWrap){
+    globalNtcWrap.style.display = isMultiPlate ? '' : 'none';
+    if(isMultiPlate) populateGlobalNtcPlateSelect();
+  }
+
+  /* Omit Well grid — multi-plate uses composite "P{n}:{well}" keys */
   const omitGrid = document.getElementById('omitGrid');
   omitGrid.innerHTML = '';
-  [...active]
+  const omitRows = isMultiPlate
+    ? multiPlateMergedRows.flatMap((rows, i) =>
+        rows.filter(r=>r.active&&!isNaN(r.ct)).map(r=>({...r,plateLabel:`P${i+1}`,wellKey:`P${i+1}:${r.well}`})))
+    : active.map(r=>({...r,plateLabel:null,wellKey:r.well}));
+  [...omitRows]
     .sort((a,b)=>a.siRNA.localeCompare(b.siRNA)||a.primer.localeCompare(b.primer)||a.well.localeCompare(b.well))
     .forEach((r,idx) => {
       const div = document.createElement('div');
       div.className = 'ntc-item omit-item';
-      const searchKey = `${r.well} ${r.siRNA} ${r.primer} ${r.ct.toFixed(3)}`.toLowerCase();
+      const wellDisplay = isMultiPlate ? `[${r.plateLabel}] ${r.well}` : r.well;
+      const searchKey = `${wellDisplay} ${r.siRNA} ${r.primer} ${r.ct.toFixed(3)}`.toLowerCase();
       div.dataset.search = searchKey;
       const safeId = `omit_${idx}`;
       div.innerHTML = `
-        <input type="checkbox" class="omit-chk" id="${safeId}" value="${r.well}"
+        <input type="checkbox" class="omit-chk" id="${safeId}" value="${r.wellKey}"
           onchange="toggleOmitItem(this)">
         <label for="${safeId}" style="cursor:pointer">
-          <strong>${r.well}</strong> · ${r.siRNA} · ${r.primer}<br>
+          <strong>${wellDisplay}</strong> · ${r.siRNA} · ${r.primer}<br>
           <span style="font-size:.76rem;color:#777">Ct ${r.ct.toFixed(3)}</span>
         </label>`;
       omitGrid.appendChild(div);
@@ -1316,14 +1755,15 @@ function renderCompletenessMatrix(){
   const ntcVal    = document.getElementById('ntcSelect').value;
   const bodyEl    = document.getElementById('completenessMatrixBody');
   if(!bodyEl) return;
-  if(!mergedRows || !mergedRows.length){
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+  if(!allMergedRows.length){
     bodyEl.innerHTML='<em style="color:#999;font-size:.82rem">Load data first.</em>'; return;
   }
   if(!refGenes.length || !ntcVal){
     bodyEl.innerHTML='<em style="color:#999;font-size:.82rem">Select Reference Gene and siNTC above.</em>'; return;
   }
 
-  const active = mergedRows.filter(r => r.active && !isNaN(r.ct));
+  const active = allMergedRows.filter(r => r.active && !isNaN(r.ct));
   const hasCT  = {};
   active.forEach(r => {
     if(!hasCT[r.siRNA]) hasCT[r.siRNA] = {};
@@ -1429,6 +1869,186 @@ function updateOmitMeta(){
 }
 
 /* ═══════════════════════════════════════════════════════
+   ANALYSIS HELPERS (multi-plate standalone versions)
+═══════════════════════════════════════════════════════ */
+
+/* Build averaged tech-rep map from a set of active rows */
+function buildTechMap(activeRows){
+  const techMap = {};
+  activeRows.forEach(r => {
+    const k = r.siRNA + '\x00' + r.primer;
+    if(!techMap[k]) techMap[k] = {siRNA:r.siRNA, primer:r.primer, cts:[], wells:[]};
+    techMap[k].cts.push(r.ct);
+    techMap[k].wells.push(r.well);
+  });
+  const avgCt = {}, avgWells = {}, rawCts = {};
+  Object.values(techMap).forEach(({siRNA, primer, cts, wells}) => {
+    if(!avgCt[siRNA])    avgCt[siRNA]    = {};
+    if(!avgWells[siRNA]) avgWells[siRNA] = {};
+    if(!rawCts[siRNA])   rawCts[siRNA]   = {};
+    avgCt[siRNA][primer] = cts.reduce((a,b)=>a+b,0)/cts.length;
+    const pairs = wells.map((w,i)=>[w||'',cts[i]]);
+    const seen = new Set();
+    const uniq = pairs.filter(([w])=>{ if(seen.has(w)) return false; seen.add(w); return true; });
+    uniq.sort((a,b)=>a[0].localeCompare(b[0]));
+    avgWells[siRNA][primer] = uniq.map(([w])=>w).filter(Boolean).join(';');
+    rawCts[siRNA][primer]   = uniq.map(([,c])=>Number.isFinite(c)?c.toFixed(2):'N/A').join(';');
+  });
+  return {avgCt, avgWells, rawCts};
+}
+
+/*
+ * Standalone per-plate analysis — equivalent to the closure-based
+ * computeAnalysisForRefGene() inside runAnalysis(), but accepts all
+ * inputs explicitly so it can be reused for every plate in multi-plate mode.
+ *
+ * overrideNtcMean: {primer: meanDCt} or null.
+ *   When provided the function skips computing NTC mean from this plate's data
+ *   and uses the supplied values instead (Global NTC mode).
+ *
+ * Returns: {refGene, kdResults, ntcResults, detailRows, ntcMean}
+ *   ntcMean is exposed so the reference plate's value can be passed to
+ *   other plates as overrideNtcMean.
+ */
+function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenesLower, overrideNtcMean){
+  const {avgCt, avgWells, rawCts} = techData;
+  const refGeneLower = refGeneInput.toLowerCase();
+
+  /* Step 2: ΔCt */
+  const deltaCt = {};
+  Object.entries(avgCt).forEach(([siRNA, primers]) => {
+    const refKey = Object.keys(primers).find(p => p.toLowerCase()===refGeneLower);
+    if(!refKey) return;
+    const refCt = primers[refKey];
+    deltaCt[siRNA] = {};
+    Object.entries(primers).forEach(([primer, tgtCt]) => {
+      if(refGenesLower.has(primer.toLowerCase())) return;
+      deltaCt[siRNA][primer] = tgtCt - refCt;
+    });
+  });
+
+  /* Step 3: NTC mean ΔCt */
+  let ntcMean;
+  if(overrideNtcMean){
+    ntcMean = overrideNtcMean;
+  } else {
+    const ntcPool = {};
+    Object.entries(deltaCt).forEach(([siRNA, primers]) => {
+      if(!ntcTreatments.includes(treatmentOf(siRNA))) return;
+      Object.entries(primers).forEach(([primer, dct]) => {
+        if(!ntcPool[primer]) ntcPool[primer] = [];
+        ntcPool[primer].push(dct);
+      });
+    });
+    ntcMean = {};
+    Object.entries(ntcPool).forEach(([primer, vals]) => {
+      ntcMean[primer] = vals.reduce((a,b)=>a+b,0)/vals.length;
+    });
+  }
+
+  /* Step 4: ΔΔCt → relExp */
+  const allTreatments = [...new Set(Object.keys(deltaCt).map(treatmentOf))];
+  const nonNTC = allTreatments.filter(t => !ntcTreatments.includes(t)).sort();
+  const ntcOnly = allTreatments.filter(t =>  ntcTreatments.includes(t)).sort();
+  const kdResults = [], detailRows = [], ntcResults = [];
+
+  function computeGroup(treatment, targetArr){
+    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
+    const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s]||{})))];
+    primers.forEach(primer => {
+      const ntcRef = ntcMean[primer];
+      if(ntcRef===undefined) return;
+      const relExps = [];
+      bioReps.forEach(siRNA => {
+        const dct = deltaCt[siRNA]?.[primer];
+        if(dct===undefined) return;
+        relExps.push(Math.pow(2,-(dct - ntcRef)));
+      });
+      if(!relExps.length) return;
+      const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
+      const meanRE   = Math.pow(2, meanLog2);
+      const seRE     = relExps.length>1
+        ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
+        : NaN;
+      targetArr.push({siRNA:treatment, primer, meanRE, seRE,
+        refGene:refGeneInput,
+        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+    });
+  }
+
+  nonNTC.forEach(treatment => {
+    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
+    const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s]||{})))];
+    const addedRefRows = new Set();
+    primers.forEach(primer => {
+      const ntcRef = ntcMean[primer];
+      if(ntcRef===undefined) return;
+      const relExps = [];
+      bioReps.forEach(siRNA => {
+        const refKey = Object.keys(avgCt[siRNA]||{}).find(p => p.toLowerCase()===refGeneLower);
+        const refCt  = refKey ? avgCt[siRNA]?.[refKey] : undefined;
+        if(refKey && !addedRefRows.has(siRNA)){
+          detailRows.push({
+            row_type:'reference_gene', housekeeping_gene:refGeneInput, treatment,
+            bio_rep:siRNA, well:avgWells[siRNA]?.[refKey]||'N/A', raw_ct:rawCts[siRNA]?.[refKey]||'N/A',
+            primer:refKey, reference_gene:refKey,
+            ct_ref_mean:fmt(refCt), ct_target_mean:fmt(refCt),
+            dct:'0.000', ntc_mean_dct:'0.000', ddct:'0.000', rel_exp:'1.0000', kd_pct:'0.0'
+          });
+          addedRefRows.add(siRNA);
+        }
+        const dct = deltaCt[siRNA]?.[primer];
+        if(dct===undefined) return;
+        const ddct   = dct - ntcRef;
+        const relExp = Math.pow(2,-ddct);
+        relExps.push(relExp);
+        detailRows.push({
+          row_type:'target_gene', housekeeping_gene:refGeneInput, treatment,
+          bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
+          primer, reference_gene:refKey||refGeneInput,
+          ct_ref_mean:fmt(refCt), ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
+          dct:dct.toFixed(3), ntc_mean_dct:ntcRef.toFixed(3),
+          ddct:ddct.toFixed(3), rel_exp:relExp.toFixed(4), kd_pct:((1-relExp)*100).toFixed(1)
+        });
+      });
+      if(!relExps.length) return;
+      const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
+      const meanRE   = Math.pow(2, meanLog2);
+      const seRE     = relExps.length>1
+        ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
+        : NaN;
+      kdResults.push({siRNA:treatment, primer, meanRE, seRE,
+        refGene:refGeneInput,
+        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+    });
+  });
+
+  ntcOnly.forEach(treatment => {
+    computeGroup(treatment, ntcResults);
+    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
+    bioReps.forEach(siRNA => {
+      Object.keys(deltaCt[siRNA]||{}).forEach(primer => {
+        const dct    = deltaCt[siRNA][primer];
+        const ntcRef = ntcMean[primer];
+        if(ntcRef===undefined) return;
+        const ddct   = dct - ntcRef;
+        const relExp = Math.pow(2,-ddct);
+        detailRows.push({
+          row_type:'siNTC', housekeeping_gene:refGeneInput, treatment,
+          bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
+          primer, reference_gene:'',
+          ct_ref_mean:'', ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
+          dct:dct.toFixed(3), ntc_mean_dct:ntcRef.toFixed(3),
+          ddct:ddct.toFixed(3), rel_exp:relExp.toFixed(4), kd_pct:((1-relExp)*100).toFixed(1)
+        });
+      });
+    });
+  });
+
+  return {refGene:refGeneInput, kdResults, ntcResults, detailRows, ntcMean};
+}
+
+/* ═══════════════════════════════════════════════════════
    ANALYSIS
 ═══════════════════════════════════════════════════════ */
 function runAnalysis(){
@@ -1441,6 +2061,71 @@ function runAnalysis(){
   clearInlineErr('cfgRefErr'); clearInlineErr('cfgNtcErr'); clearInlineErr('cfgRunErr');
 
   const refGenesLower = new Set(refGenesInput.map(g => g.toLowerCase()));
+
+  /* ── MULTI-PLATE PATH ── */
+  if(isMultiPlate){
+    // Parse omitted composite keys "P{n}:{well}" → per-plate well sets
+    const omittedByPlate = parseOmittedWells(omittedWells);
+
+    // Collect all plates from multiPlateMergedRows
+    const allPlatesData = multiPlateMergedRows.map((rows, i) => ({
+      plateIdx: i, label: `P${i+1}`, rows
+    }));
+
+    // Build tech maps per plate, respecting per-plate omissions
+    const plateTechData = allPlatesData.map(({plateIdx, label, rows}) => {
+      const plateOmit = omittedByPlate[plateIdx] || new Set();
+      const active    = rows.filter(r => r.active && !isNaN(r.ct) && !plateOmit.has(r.well));
+      return {plateIdx, label, techData: buildTechMap(active)};
+    });
+
+    // Global NTC: compute reference plate's ntcMean first
+    let overrideNtcMeanByRefGene = null;
+    if(ntcMode === 'global'){
+      overrideNtcMeanByRefGene = {};
+      const refPlateData = plateTechData[globalNtcPlateIdx] || plateTechData[0];
+      refGenesInput.forEach(rg => {
+        const rv = computePerPlateAnalysis(rg, refPlateData.techData, ntcTreatments, refGenesLower, null);
+        overrideNtcMeanByRefGene[rg] = rv.ntcMean;
+      });
+    }
+
+    // Compute per-plate results
+    const allPlateResults = plateTechData.map(({plateIdx, label, techData}) => {
+      const perRefGene = {};
+      refGenesInput.forEach(rg => {
+        const override = (ntcMode === 'global' && overrideNtcMeanByRefGene)
+          ? overrideNtcMeanByRefGene[rg] : null;
+        const view = computePerPlateAnalysis(rg, techData, ntcTreatments, refGenesLower, override);
+        if(view.kdResults.length || view.ntcResults.length) perRefGene[rg] = view;
+      });
+      return {plateIdx, label, perRefGene};
+    });
+
+    // Merge, add suffixes where needed
+    const mergedPerRefGene = mergeMultiPlateResults(allPlateResults, refGenesInput);
+    const availableRefGenes = Object.keys(mergedPerRefGene);
+    if(!availableRefGenes.length){
+      showInlineErr('cfgRunErr','No results — check reference gene and NTC selection'); return;
+    }
+
+    currentResultRefGene = availableRefGenes[0];
+    analysisResult = {
+      perRefGene: mergedPerRefGene,
+      refGenes: availableRefGenes,
+      currentRefGene: currentResultRefGene,
+      ntcTreatments,
+      omittedWells: [...omittedWells]
+    };
+    syncCurrentAnalysisView();
+    document.getElementById('card4').classList.remove('hidden');
+    setStep(4);
+    document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+    renderActiveAnalysisView();
+    return;
+  }
+
+  /* ── SINGLE-PLATE PATH (original code, unchanged) ── */
   const active = mergedRows.filter(r => r.active && !isNaN(r.ct) && !omittedWells.has(r.well));
 
   /* Step 1 – Average tech-reps:
@@ -1657,6 +2342,84 @@ function runAnalysis(){
 }
 
 const fmt = v => (v===undefined||v===null||isNaN(v)) ? 'N/A' : Number(v).toFixed(3);
+
+/* ═══════════════════════════════════════════════════════
+   MULTI-PLATE MERGE HELPERS
+═══════════════════════════════════════════════════════ */
+
+/*
+ * Parse omit-well set: composite keys "P{n}:{well}" → {plateIdx(0-based): Set<well>}
+ * Legacy plain keys (single-plate) go to plateIdx 0.
+ */
+function parseOmittedWells(omittedSet){
+  const byPlate = {};
+  omittedSet.forEach(key => {
+    const m = key.match(/^P(\d+):(.+)$/);
+    if(m){
+      const pi = parseInt(m[1]) - 1; // P1 → 0, P2 → 1, ...
+      if(!byPlate[pi]) byPlate[pi] = new Set();
+      byPlate[pi].add(m[2]);
+    } else {
+      if(!byPlate[0]) byPlate[0] = new Set();
+      byPlate[0].add(key);
+    }
+  });
+  return byPlate;
+}
+
+/*
+ * Merge per-plate analysis results.
+ * Adds "(P1)"/"(P2)" suffix to siRNA names that appear in more than one plate
+ * for the same (siRNA × primer) combination.
+ * Returns perRefGene map identical in structure to the single-plate version.
+ */
+function mergeMultiPlateResults(allPlateResults, refGenesInput){
+  // Count how many plates each (siRNA × primer) key appears in, per refGene
+  const keyCountByRg = {};
+  refGenesInput.forEach(rg => { keyCountByRg[rg] = {}; });
+  allPlateResults.forEach(({label, perRefGene}) => {
+    refGenesInput.forEach(rg => {
+      const view = perRefGene[rg];
+      if(!view) return;
+      view.kdResults.forEach(r => {
+        const k = r.siRNA + '\x00' + r.primer;
+        keyCountByRg[rg][k] = (keyCountByRg[rg][k] || 0) + 1;
+      });
+    });
+  });
+
+  const merged = {};
+  refGenesInput.forEach(rg => {
+    const allKd = [], allNtc = [], allDetail = [];
+    allPlateResults.forEach(({label, perRefGene}) => {
+      const view = perRefGene[rg];
+      if(!view) return;
+      const needsSuffix = (siRNA, primer) => (keyCountByRg[rg][siRNA + '\x00' + primer] || 0) > 1;
+
+      view.kdResults.forEach(r => {
+        const rc = {...r};
+        if(needsSuffix(r.siRNA, r.primer)) rc.siRNA = `${r.siRNA} (${label})`;
+        allKd.push(rc);
+      });
+      view.ntcResults.forEach(r => {
+        allNtc.push({...r}); // NTC is never suffixed (it's per-plate by design)
+      });
+      view.detailRows.forEach(r => {
+        const rc = {...r};
+        if(needsSuffix(r.treatment, r.primer)){
+          rc.treatment = `${r.treatment} (${label})`;
+          // Also update bio_rep display if it echoes the siRNA name
+          if(rc.bio_rep && rc.bio_rep.startsWith(r.treatment)){
+            rc.bio_rep = rc.bio_rep.replace(r.treatment, `${r.treatment} (${label})`);
+          }
+        }
+        allDetail.push(rc);
+      });
+    });
+    if(allKd.length) merged[rg] = {refGene:rg, kdResults:allKd, ntcResults:allNtc, detailRows:allDetail};
+  });
+  return merged;
+}
 
 /* ═══════════════════════════════════════════════════════
    RENDER TABLES
@@ -2186,6 +2949,7 @@ function markZoneDone(id, msg){
 }
 function clearLayout(){
   layoutAoa = null; layoutHdrIdx = -1;
+  layoutFiles = [];
   const inp = document.getElementById('fileLayout');
   if(inp) inp.value = '';
   const z = document.getElementById('zoneLayout');
@@ -2194,12 +2958,16 @@ function clearLayout(){
   z.querySelector('.uz-icon').textContent = '📋';
   const tag = document.getElementById('layoutFileTag');
   if(tag){ tag.style.display='none'; tag.innerHTML=''; }
+  const chips = document.getElementById('layoutFileChips');
+  if(chips){ chips.style.display='none'; chips.innerHTML=''; }
   document.getElementById('layoutStatus').classList.add('hidden');
   document.getElementById('layoutMapperWrap').style.display = 'none';
   document.getElementById('bothLoadedWrap').style.display = 'none';
+  updateMultiPlateNotice();
 }
 function clearResult(){
   resultAoa = null; resultHdrIdx = -1; resultFileStem = '';
+  resultFiles = [];
   const inp = document.getElementById('fileResult');
   if(inp) inp.value = '';
   const z = document.getElementById('zoneResult');
@@ -2208,10 +2976,13 @@ function clearResult(){
   z.querySelector('.uz-icon').textContent = '📊';
   const tag = document.getElementById('resultFileTag');
   if(tag){ tag.style.display='none'; tag.innerHTML=''; }
+  const chips = document.getElementById('resultFileChips');
+  if(chips){ chips.style.display='none'; chips.innerHTML=''; }
   document.getElementById('resultStatus').classList.add('hidden');
   document.getElementById('resultMapperWrap').style.display = 'none';
   document.getElementById('hdrOverrideBox').style.display = 'none';
   document.getElementById('bothLoadedWrap').style.display = 'none';
+  updateMultiPlateNotice();
 }
 function setStep(n){
   for(let i=1;i<=4;i++){
