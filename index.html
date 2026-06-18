@@ -92,6 +92,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .tab-btn:hover:not(.active){color:var(--primary-dk);background:#f7f9fc}
     .tab-panel{display:none}.tab-panel.active{display:block}
     .fig-wrap{width:100%;min-height:500px;overflow-x:auto;display:flex;justify-content:flex-start;}
+    .fig-plate-section{margin-bottom:6px;}
+    .fig-plate-label{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:6px;padding:4px 10px;background:#f1f5f9;border-radius:6px;display:inline-block;}
     .hidden{display:none}
     .tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
      table{width:100%;border-collapse:collapse;font-size:.8rem}
@@ -269,7 +271,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         <div id="layoutStatus" class="hidden" style="margin-top:8px"></div>
         <div id="layoutMapperWrap" style="display:none;margin-top:10px">
           <div class="col-mapper">
-            <h3>Metadata File — Column Mapping</h3>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <h3 style="margin:0">Metadata File — Column Mapping</h3>
+              <label id="universalMetaLabel" style="display:none;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--primary)">
+                <input type="checkbox" id="universalMetaChk"/>
+                Universal metadata
+              </label>
+            </div>
             <div class="mapper-grid" id="layoutMapperGrid"></div>
           </div>
         </div>
@@ -436,7 +444,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   <div class="card hidden" id="card4">
     <h2>Results &amp; Figures</h2>
     <div class="col-mapper" style="margin-bottom:10px;padding:10px 12px">
-      <div class="mapper-grid" style="grid-template-columns:minmax(240px,360px);align-items:end">
+      <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,auto));align-items:end">
+        <!-- Plate selector — only visible in per-plate NTC mode -->
+        <div class="mapper-item" id="resultPlateFilterWrap" style="display:none">
+          <label style="font-size:.85rem;font-weight:700;color:#555;">Plate</label>
+          <div class="refgene-drop" id="resultPlateDrop">
+            <div class="refgene-btn" id="resultPlateBtn" onclick="toggleResultPlateDrop(event)">
+              <span class="rg-label" id="resultPlateLabel">All</span>
+              <span class="rg-arrow">▼</span>
+            </div>
+            <div class="refgene-panel" id="resultPlatePanel"></div>
+          </div>
+        </div>
         <div class="mapper-item">
           <label for="resultRefGeneSelect" style="font-size:.85rem;font-weight:700;color:#555;">Reference (Housekeeping)</label>
           <select id="resultRefGeneSelect" onchange="onDisplayedRefGeneChange(this.value)" style="width:200px;"></select>
@@ -526,26 +545,26 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div class="tab-panel active" id="figRel">
         <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
           <button class="btn-secondary" onclick="toggleNTC()">Show NTC</button>
-          <button class="btn-secondary" onclick="downloadFig('plotRel','Expression_NTC')">Export Figure</button>
+          <button class="btn-secondary" onclick="downloadFigAll('Rel','Expression_NTC')">Export Figure</button>
           <button class="btn-secondary" onclick="exportPrismFig('figRel')">Export .prism</button>
         </div>
-        <div class="fig-wrap"><div id="plotRel" style="width:100%;height:100%"></div></div>
+        <div id="figRelContainer"></div>
       </div>
       <div class="tab-panel" id="figBar">
         <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
           <button class="btn-secondary" id="ntcToggleBtn" onclick="toggleNTC()">Show NTC</button>
-          <button class="btn-secondary" onclick="downloadFig('plotBar','KD_BarChart')">Export Figure</button>
+          <button class="btn-secondary" onclick="downloadFigAll('Bar','KD_BarChart')">Export Figure</button>
           <button class="btn-secondary" onclick="exportPrismFig('figBar')">Export .prism</button>
         </div>
-        <div class="fig-wrap"><div id="plotBar" style="width:100%;height:100%"></div></div>
+        <div id="figBarContainer"></div>
       </div>
       <div class="tab-panel" id="figDot">
         <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
           <button class="btn-secondary" onclick="toggleNTC()">Show NTC</button>
-          <button class="btn-secondary" onclick="downloadFig('plotDot','Dot_Replicates')">Export Figure</button>
+          <button class="btn-secondary" onclick="downloadFigAll('Dot','Dot_Replicates')">Export Figure</button>
           <button class="btn-secondary" onclick="exportPrismFig('figDot')">Export .prism</button>
         </div>
-        <div class="fig-wrap"><div id="plotDot" style="width:100%;height:100%"></div></div>
+        <div id="figDotContainer"></div>
       </div>
     </div>
 
@@ -599,7 +618,16 @@ function setupDrop(id, cb){
    MULTI-FILE PLATE-ASSIGNMENT SYSTEM
 ═══════════════════════════════════════════════════════ */
 function computeTotalPlates(){
-  return Math.max(layoutFiles.length, resultFiles.length, 1);
+  const lPlates = layoutFiles.map(f => f.assignedPlate);
+  const rPlates = resultFiles.map(f => f.assignedPlate);
+  const all = new Set([...lPlates, ...rPlates]);
+  return Math.max(all.size, 1);
+}
+/* Return all distinct assigned plate numbers, sorted */
+function getDistinctPlateNumbers(){
+  const lPlates = layoutFiles.map(f => f.assignedPlate);
+  const rPlates = resultFiles.map(f => f.assignedPlate);
+  return [...new Set([...lPlates, ...rPlates])].sort((a,b)=>a-b);
 }
 function updateIsMultiPlate(){
   isMultiPlate = computeTotalPlates() > 1;
@@ -613,13 +641,17 @@ function renderFileChips(containerId, fileList, assignFnName, removeFnName){
   if(!el) return;
   if(!fileList.length){ el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = 'block';
-  const total = computeTotalPlates();
-  const showPlate = fileList.length > 1;
+  const distinctPlates = getDistinctPlateNumbers();
+  // Allow one extra plate number above current max for "new plate" option
+  const maxPlate = Math.max(...distinctPlates, 0);
+  const plateOptions = [...distinctPlates];
+  if(!plateOptions.includes(maxPlate + 1)) plateOptions.push(maxPlate + 1);
+  const showPlate = layoutFiles.length + resultFiles.length > 1;
   el.innerHTML = fileList.map((lf, idx) => {
     const plateSel = showPlate
       ? `<select class="chip-plate-sel" onchange="${assignFnName}(${idx},+this.value)">${
-          Array.from({length:total}, (_,i) =>
-            `<option value="${i+1}"${lf.assignedPlate===i+1?' selected':''}>Plate ${i+1}</option>`
+          plateOptions.map(p =>
+            `<option value="${p}"${lf.assignedPlate===p?' selected':''}>Plate ${p}</option>`
           ).join('')
         }</select>`
       : '';
@@ -631,8 +663,17 @@ function renderFileChips(containerId, fileList, assignFnName, removeFnName){
     </div>`;
   }).join('');
 }
-function renderLayoutFileChips(){ renderFileChips('layoutFileChips', layoutFiles, 'assignLayoutFilePlate', 'removeLayoutFile'); }
-function renderResultFileChips(){ renderFileChips('resultFileChips', resultFiles, 'assignResultFilePlate', 'removeResultFile'); }
+function renderLayoutFileChips(){ renderFileChips('layoutFileChips', layoutFiles, 'assignLayoutFilePlate', 'removeLayoutFile'); updateUniversalMetaVisibility(); }
+function renderResultFileChips(){ renderFileChips('resultFileChips', resultFiles, 'assignResultFilePlate', 'removeResultFile'); updateUniversalMetaVisibility(); }
+
+function updateUniversalMetaVisibility(){
+  const lbl = document.getElementById('universalMetaLabel');
+  if(!lbl) return;
+  // Show only when: multi-plate mode, layout file loaded, and NOT in withMeta mode
+  const withMeta = document.getElementById('withMetaChk')?.checked ?? false;
+  const show = isMultiPlate && layoutFiles.some(f=>f.aoa) && !withMeta;
+  lbl.style.display = show ? 'flex' : 'none';
+}
 
 function assignLayoutFilePlate(idx, plateNum){
   layoutFiles[idx].assignedPlate = plateNum;
@@ -736,12 +777,17 @@ function updateMultiPlateNotice(){
   const el = document.getElementById('multiPlateNotice');
   if(!el) return;
   if(!isMultiPlate){ el.style.display = 'none'; return; }
-  const total     = computeTotalPlates();
+  const distinctPlates = getDistinctPlateNumbers();
+  const total     = distinctPlates.length;
+  const universalMeta = document.getElementById('universalMetaChk')?.checked ?? false;
+  const p1LayoutReady = layoutFiles.some(f => f.assignedPlate === 1 && f.aoa);
   let readyCount  = 0;
-  for(let p = 1; p <= total; p++){
-    const lf = layoutFiles.find(f => f.assignedPlate === p);
-    const rf = resultFiles.find(f => f.assignedPlate === p);
-    if(lf?.aoa && rf?.aoa && rf.hdrIdx >= 0) readyCount++;
+  for(const p of distinctPlates){
+    const lfs = layoutFiles.filter(f => f.assignedPlate === p);
+    const rfs = resultFiles.filter(f => f.assignedPlate === p);
+    const lfReady = lfs.some(f => f.aoa) || (universalMeta && p1LayoutReady) || lfs.length === 0;
+    const rfReady = rfs.some(f => f.aoa && f.hdrIdx >= 0);
+    if(lfReady && rfReady) readyCount++;
   }
   el.style.display = 'block';
   el.innerHTML = readyCount === total
@@ -885,10 +931,11 @@ function onNtcModeChange(){
 function populateGlobalNtcPlateSelect(){
   const sel = document.getElementById('globalNtcPlateSelect');
   if(!sel) return;
-  const total = computeTotalPlates();
-  sel.innerHTML = Array.from({length:total}, (_, i) =>
-    `<option value="${i}"${i===globalNtcPlateIdx?' selected':''}>${i===0?'Plate 1':resultFiles.find(f=>f.assignedPlate===i+1)?.file.name||'Plate '+(i+1)}</option>`
-  ).join('');
+  const distinctPlates = getDistinctPlateNumbers();
+  sel.innerHTML = distinctPlates.map((pl, i) => {
+    const label = resultFiles.filter(f=>f.assignedPlate===pl).map(f=>f.file.name).join('+') || `Plate ${pl}`;
+    return `<option value="${i}"${i===globalNtcPlateIdx?' selected':''}>Plate ${pl}: ${label}</option>`;
+  }).join('');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1249,6 +1296,7 @@ function toggleWithMeta(){
   layoutCol.style.pointerEvents = checked ? 'none'  : '';
   document.getElementById('withMetaWarning').style.display = checked ? 'block' : 'none';
   document.getElementById('resultMetaCols').style.display = checked ? 'block' : 'none';
+  updateUniversalMetaVisibility();
   if(checked){
     tryShowBothLoaded();
   } else if(!layoutAoa){
@@ -1397,6 +1445,50 @@ function confirmMapping(){
     }
   }
 
+  /* ── If multiple files share Plate 1, append their rows too ── */
+  {
+    const cfg0 = {
+      withMeta,
+      rWellCol: +document.getElementById('rmap_well').value,
+      rCtCol:   +document.getElementById('rmap_ct').value,
+      lWellCol:   withMeta ? 0 : +document.getElementById('lmap_well').value,
+      lSiRNACol:  withMeta ? 0 : +document.getElementById('lmap_sirna').value,
+      lPrimerCol: withMeta ? 0 : +document.getElementById('lmap_primer').value,
+      rSiRNACol:  withMeta ? +document.getElementById('rmap_sirna').value  : 0,
+      rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0
+    };
+    const p1lfs = layoutFiles.filter(f => f.assignedPlate === 1);
+    const p1rfs = resultFiles.filter(f => f.assignedPlate === 1);
+    // Skip index 0 combos (already done above via layoutAoa/resultAoa)
+    const extraCombos = [];
+    if(!withMeta){
+      for(let li = 0; li < p1lfs.length; li++){
+        for(let ri = 0; ri < p1rfs.length; ri++){
+          if(li === 0 && ri === 0) continue; // already merged
+          extraCombos.push({lf: p1lfs[li], rf: p1rfs[ri]});
+        }
+      }
+    } else {
+      for(let ri = 1; ri < p1rfs.length; ri++){
+        extraCombos.push({lf: null, rf: p1rfs[ri]});
+      }
+    }
+    for(const {lf, rf} of extraCombos){
+      if(!rf?.aoa || rf.hdrIdx < 0) continue;
+      const extraRows = buildMergedRowsFromConfig(
+        {layoutAoa: lf?.aoa || null, layoutHdrIdx: lf?.hdrIdx ?? -1, resultAoa: rf.aoa, resultHdrIdx: rf.hdrIdx},
+        cfg0
+      );
+      mergedRows = mergedRows.concat(extraRows);
+      totalLayout += extraRows.length;
+      extraRows.forEach(r => {
+        if(!r.active) skippedCount++;
+        else if(isNaN(r.ct)) noCtCount++;
+        else activeCount++;
+      });
+    }
+  }
+
   const mode = withMeta ? 'result-anchored' : 'Metadata-anchored';
   /* Merged preview */
   buildMergedPreview(totalLayout, activeCount, skippedCount, noCtCount, mode);
@@ -1410,8 +1502,12 @@ function confirmMapping(){
 
   /* ── Multi-plate: save mapping config and process additional plates ── */
   if(isMultiPlate){
+    const universalMeta = !withMeta && (document.getElementById('universalMetaChk')?.checked ?? false);
+    // Plate 1 layout file — used as fallback when universalMeta is on
+    const p1lf = getPlate1LayoutFile();
     savedMappingConfig = {
       withMeta,
+      universalMeta,
       rWellCol:  +document.getElementById('rmap_well').value,
       rCtCol:    +document.getElementById('rmap_ct').value,
       lWellCol:   withMeta ? 0 : +document.getElementById('lmap_well').value,
@@ -1421,22 +1517,45 @@ function confirmMapping(){
       rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0
     };
     multiPlateMergedRows = [mergedRows];
-    const total = computeTotalPlates();
+    const distinctPlates = getDistinctPlateNumbers();
     let anyFail = false;
-    for(let pl = 2; pl <= total; pl++){
-      const lf = layoutFiles.find(f => f.assignedPlate === pl);
-      const rf = resultFiles.find(f => f.assignedPlate === pl);
-      if(!lf?.aoa || !rf?.aoa || rf.hdrIdx < 0){
+    for(let pi = 1; pi < distinctPlates.length; pi++){
+      const pl = distinctPlates[pi];
+      // Combine all files assigned to this plate number
+      let lfs = layoutFiles.filter(f => f.assignedPlate === pl);
+      const rfs = resultFiles.filter(f => f.assignedPlate === pl);
+      // Universal metadata: if no layout file for this plate, fall back to Plate 1's layout
+      if(!lfs.length && universalMeta && p1lf?.aoa) lfs = [p1lf];
+      if(!rfs.length || !rfs[0]?.aoa || rfs[0].hdrIdx < 0){
         showStatus('uploadMergeStatus','error',
-          `❌ Plate ${pl}: both metadata and result files must be loaded with detectable headers.`);
+          `❌ Plate ${pl}: result file must be loaded with a detectable header.`);
         anyFail = true;
         continue;
       }
-      const plateRows = buildMergedRowsFromConfig(
-        {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
-        savedMappingConfig
-      );
-      multiPlateMergedRows.push(plateRows);
+      // Merge rows from all layout+result file pairs sharing this plate number
+      let combinedRows = [];
+      if(lfs.length && !savedMappingConfig.withMeta){
+        for(const lf of lfs){
+          for(const rf of rfs){
+            if(!lf?.aoa || !rf?.aoa || rf.hdrIdx < 0) continue;
+            combinedRows = combinedRows.concat(buildMergedRowsFromConfig(
+              {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
+              savedMappingConfig
+            ));
+          }
+        }
+      } else {
+        for(const rf of rfs){
+          if(!rf?.aoa || rf.hdrIdx < 0) continue;
+          // withMeta mode: use dummy layoutAoa
+          const lf = lfs[0] || {aoa:null, hdrIdx:-1};
+          combinedRows = combinedRows.concat(buildMergedRowsFromConfig(
+            {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
+            savedMappingConfig
+          ));
+        }
+      }
+      multiPlateMergedRows.push(combinedRows);
     }
     if(anyFail){
       document.getElementById('uploadMergeStatus').classList.remove('hidden');
@@ -1482,8 +1601,9 @@ function checkColumnConsistency(cfg){
     {idx: cfg.lSiRNACol,  label: 'Sample'},
     {idx: cfg.lPrimerCol, label: 'Primer/Target'}
   ];
-  const total = computeTotalPlates();
-  for(let pl = 2; pl <= total; pl++){
+  const distinctPlates = getDistinctPlateNumbers();
+  for(let pi = 1; pi < distinctPlates.length; pi++){
+    const pl = distinctPlates[pi];
     const lf = layoutFiles.find(f => f.assignedPlate === pl);
     const rf = resultFiles.find(f => f.assignedPlate === pl);
     if(!rf?.aoa || rf.hdrIdx < 0) continue;
@@ -1740,6 +1860,11 @@ document.addEventListener('click', function(e){
     document.getElementById('cfgSampleBtn')?.classList.remove('open');
     document.getElementById('cfgSamplePanel')?.classList.remove('open');
   }
+  const pDrop = document.getElementById('resultPlateDrop');
+  if(pDrop && !pDrop.contains(e.target)){
+    document.getElementById('resultPlateBtn')?.classList.remove('open');
+    document.getElementById('resultPlatePanel')?.classList.remove('open');
+  }
 });
 
 function getCurrentAnalysisView(){
@@ -1780,15 +1905,34 @@ function renderActiveAnalysisView(){
   const view = syncCurrentAnalysisView();
   if(!view) return;
   populateDisplayedRefGeneSelects();
+
+  // Show/populate plate selector only in per-plate NTC mode
+  const plateWrap = document.getElementById('resultPlateFilterWrap');
+  if(plateWrap){
+    const showPlateFilter = !!(analysisResult && analysisResult.isPerPlate);
+    plateWrap.style.display = showPlateFilter ? '' : 'none';
+    if(showPlateFilter){
+      // Only re-populate if plate list changed (avoid resetting user selections)
+      const panel = document.getElementById('resultPlatePanel');
+      const currentPlates = analysisResult.allPlateLabels || [];
+      const renderedPlates = panel ? [...panel.querySelectorAll('input.result-plate-chk')].map(cb=>cb.value) : [];
+      if(currentPlates.join(',') !== renderedPlates.join(',')) populateResultPlatePanel();
+    }
+  }
+
   const selectedSamples = getSelectedSamples();
-  const filteredKd = selectedSamples === null
-    ? view.kdResults
-    : view.kdResults.filter(r => selectedSamples.includes(r.siRNA));
+  const selectedPlates = (analysisResult && analysisResult.isPerPlate) ? getSelectedResultPlates() : null;
+
+  const filteredKd = view.kdResults.filter(r =>
+    (selectedSamples === null || selectedSamples.includes(r.siRNA)) &&
+    (selectedPlates === null || (r.plate && selectedPlates.includes(r.plate)))
+  );
   currentFilteredKd = filteredKd;
   renderKDTable(filteredKd);
-  currentFilteredDetailRows = selectedSamples === null
-    ? view.detailRows
-    : view.detailRows.filter(r => selectedSamples.includes(r.treatment));
+  currentFilteredDetailRows = view.detailRows.filter(r =>
+    (selectedSamples === null || selectedSamples.includes(r.treatment)) &&
+    (selectedPlates === null || (r.plate && selectedPlates.includes(r.plate)))
+  );
   renderDetailTable(currentFilteredDetailRows);
   renderSummaryCards(filteredKd);
   renderCharts(filteredKd);
@@ -1798,6 +1942,55 @@ function onDisplayedRefGeneChange(refGene){
   if(!analysisResult || !analysisResult.perRefGene?.[refGene]) return;
   currentResultRefGene = refGene;
   renderActiveAnalysisView();
+}
+
+/* ── Result Plate Filter (per-plate NTC mode) ── */
+function toggleResultPlateDrop(e){
+  e && e.stopPropagation();
+  const btn = document.getElementById('resultPlateBtn');
+  const panel = document.getElementById('resultPlatePanel');
+  if(!btn||!panel) return;
+  const opening = !panel.classList.contains('open');
+  btn.classList.toggle('open', opening);
+  panel.classList.toggle('open', opening);
+}
+function populateResultPlatePanel(){
+  if(!analysisResult || !analysisResult.isPerPlate) return;
+  const panel = document.getElementById('resultPlatePanel');
+  if(!panel) return;
+  const labels = analysisResult.allPlateLabels || [];
+  panel.innerHTML =
+    `<label><input type="checkbox" id="resultPlateAll" value="__all__" checked onchange="onResultPlateAllChange(this)"> All</label>` +
+    labels.map(lbl =>
+      `<label><input type="checkbox" class="result-plate-chk" value="${esc(lbl)}" checked onchange="onResultPlateItemChange()"> ${esc(lbl)}</label>`
+    ).join('');
+  updateResultPlateLabel();
+}
+function getSelectedResultPlates(){
+  const allChk = document.getElementById('resultPlateAll');
+  if(allChk && allChk.checked) return null; // null = all
+  return [...document.querySelectorAll('#resultPlatePanel input.result-plate-chk:checked')].map(cb => cb.value);
+}
+function updateResultPlateLabel(){
+  const lbl = document.getElementById('resultPlateLabel');
+  if(!lbl) return;
+  const sel = getSelectedResultPlates();
+  if(sel === null){ lbl.textContent = 'All'; lbl.classList.remove('placeholder'); }
+  else if(sel.length === 0){ lbl.textContent = 'None'; lbl.classList.add('placeholder'); }
+  else if(sel.length === 1){ lbl.textContent = sel[0]; lbl.classList.remove('placeholder'); }
+  else { lbl.textContent = sel.length + ' plates'; lbl.classList.remove('placeholder'); }
+}
+function onResultPlateAllChange(chk){
+  document.querySelectorAll('#resultPlatePanel input.result-plate-chk').forEach(cb => cb.checked = chk.checked);
+  updateResultPlateLabel();
+  if(analysisResult) renderActiveAnalysisView();
+}
+function onResultPlateItemChange(){
+  const allItems = [...document.querySelectorAll('#resultPlatePanel input.result-plate-chk')];
+  const allChk = document.getElementById('resultPlateAll');
+  if(allChk) allChk.checked = allItems.every(cb => cb.checked);
+  updateResultPlateLabel();
+  if(analysisResult) renderActiveAnalysisView();
 }
 
 function onCfgChange(){
@@ -1971,12 +2164,13 @@ function buildTechMap(activeRows){
  * overrideNtcMean: {primer: meanDCt} or null.
  *   When provided the function skips computing NTC mean from this plate's data
  *   and uses the supplied values instead (Global NTC mode).
+ * plateLabel: string like "P1" — when provided, all result rows get a `plate` field.
  *
  * Returns: {refGene, kdResults, ntcResults, detailRows, ntcMean}
  *   ntcMean is exposed so the reference plate's value can be passed to
  *   other plates as overrideNtcMean.
  */
-function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenesLower, overrideNtcMean){
+function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenesLower, overrideNtcMean, plateLabel){
   const {avgCt, avgWells, rawCts} = techData;
   const refGeneLower = refGeneInput.toLowerCase();
 
@@ -2024,11 +2218,13 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
     primers.forEach(primer => {
       const ntcRef = ntcMean[primer];
       if(ntcRef===undefined) return;
-      const relExps = [];
+      const relExps = [], repWells = [], repBioReps = [];
       bioReps.forEach(siRNA => {
         const dct = deltaCt[siRNA]?.[primer];
         if(dct===undefined) return;
         relExps.push(Math.pow(2,-(dct - ntcRef)));
+        repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
+        repBioReps.push(siRNA);
       });
       if(!relExps.length) return;
       const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
@@ -2036,11 +2232,15 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
       const seRE     = relExps.length>1
         ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
         : NaN;
+      const pl = plateLabel ? {plate:plateLabel} : {};
       targetArr.push({siRNA:treatment, primer, meanRE, seRE,
-        refGene:refGeneInput,
-        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+        refGene:refGeneInput, ...pl,
+        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
+        repWells, repBioReps});
     });
   }
+
+  const pl = plateLabel ? {plate:plateLabel} : {};
 
   nonNTC.forEach(treatment => {
     const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
@@ -2049,12 +2249,13 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
     primers.forEach(primer => {
       const ntcRef = ntcMean[primer];
       if(ntcRef===undefined) return;
-      const relExps = [];
+      const relExps = [], repWells = [], repBioReps = [];
       bioReps.forEach(siRNA => {
         const refKey = Object.keys(avgCt[siRNA]||{}).find(p => p.toLowerCase()===refGeneLower);
         const refCt  = refKey ? avgCt[siRNA]?.[refKey] : undefined;
         if(refKey && !addedRefRows.has(siRNA)){
           detailRows.push({
+            ...pl,
             row_type:'reference_gene', housekeeping_gene:refGeneInput, treatment,
             bio_rep:siRNA, well:avgWells[siRNA]?.[refKey]||'N/A', raw_ct:rawCts[siRNA]?.[refKey]||'N/A',
             primer:refKey, reference_gene:refKey,
@@ -2068,7 +2269,10 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
         const ddct   = dct - ntcRef;
         const relExp = Math.pow(2,-ddct);
         relExps.push(relExp);
+        repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
+        repBioReps.push(siRNA);
         detailRows.push({
+          ...pl,
           row_type:'target_gene', housekeeping_gene:refGeneInput, treatment,
           bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
           primer, reference_gene:refKey||refGeneInput,
@@ -2083,9 +2287,10 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
       const seRE     = relExps.length>1
         ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
         : NaN;
-      kdResults.push({siRNA:treatment, primer, meanRE, seRE,
+      kdResults.push({...pl, siRNA:treatment, primer, meanRE, seRE,
         refGene:refGeneInput,
-        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
+        repWells, repBioReps});
     });
   });
 
@@ -2100,6 +2305,7 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
         const ddct   = dct - ntcRef;
         const relExp = Math.pow(2,-ddct);
         detailRows.push({
+          ...pl,
           row_type:'siNTC', housekeeping_gene:refGeneInput, treatment,
           bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
           primer, reference_gene:'',
@@ -2133,9 +2339,12 @@ function runAnalysis(){
     // Parse omitted composite keys "P{n}:{well}" → per-plate well sets
     const omittedByPlate = parseOmittedWells(omittedWells);
 
+    // Map multiPlateMergedRows index → distinct plate number label
+    const distinctPlates = getDistinctPlateNumbers();
+
     // Collect all plates from multiPlateMergedRows
     const allPlatesData = multiPlateMergedRows.map((rows, i) => ({
-      plateIdx: i, label: `P${i+1}`, rows
+      plateIdx: i, label: `P${distinctPlates[i] ?? (i+1)}`, rows
     }));
 
     // Build tech maps per plate, respecting per-plate omissions
@@ -2151,25 +2360,32 @@ function runAnalysis(){
       overrideNtcMeanByRefGene = {};
       const refPlateData = plateTechData[globalNtcPlateIdx] || plateTechData[0];
       refGenesInput.forEach(rg => {
-        const rv = computePerPlateAnalysis(rg, refPlateData.techData, ntcTreatments, refGenesLower, null);
+        const rv = computePerPlateAnalysis(rg, refPlateData.techData, ntcTreatments, refGenesLower, null, refPlateData.label);
         overrideNtcMeanByRefGene[rg] = rv.ntcMean;
       });
     }
 
-    // Compute per-plate results
+    // Compute per-plate results (pass plateLabel so rows get a plate field)
     const allPlateResults = plateTechData.map(({plateIdx, label, techData}) => {
       const perRefGene = {};
       refGenesInput.forEach(rg => {
         const override = (ntcMode === 'global' && overrideNtcMeanByRefGene)
           ? overrideNtcMeanByRefGene[rg] : null;
-        const view = computePerPlateAnalysis(rg, techData, ntcTreatments, refGenesLower, override);
+        const view = computePerPlateAnalysis(rg, techData, ntcTreatments, refGenesLower, override, label);
         if(view.kdResults.length || view.ntcResults.length) perRefGene[rg] = view;
       });
       return {plateIdx, label, perRefGene};
     });
 
-    // Merge, add suffixes where needed
-    const mergedPerRefGene = mergeMultiPlateResults(allPlateResults, refGenesInput);
+    let mergedPerRefGene;
+    const allPlateLabels = allPlatesData.map(p => p.label);
+    if(ntcMode === 'per-plate'){
+      // Per-plate: combine without siRNA suffixes; plate info already in each row's .plate field
+      mergedPerRefGene = mergeMultiPlateResultsPerPlate(allPlateResults, refGenesInput);
+    } else {
+      // Global NTC: existing suffix logic
+      mergedPerRefGene = mergeMultiPlateResults(allPlateResults, refGenesInput);
+    }
     const availableRefGenes = Object.keys(mergedPerRefGene);
     if(!availableRefGenes.length){
       showInlineErr('cfgRunErr','No results — check reference gene and NTC selection'); return;
@@ -2181,7 +2397,9 @@ function runAnalysis(){
       refGenes: availableRefGenes,
       currentRefGene: currentResultRefGene,
       ntcTreatments,
-      omittedWells: [...omittedWells]
+      omittedWells: [...omittedWells],
+      isPerPlate: ntcMode === 'per-plate' && isMultiPlate,
+      allPlateLabels
     };
     syncCurrentAnalysisView();
     document.getElementById('card4').classList.remove('hidden');
@@ -2263,11 +2481,13 @@ function runAnalysis(){
       primers.forEach(primer => {
         const ntcRef = ntcMean[primer];
         if(ntcRef===undefined) return;
-        const relExps = [];
+        const relExps = [], repWells = [], repBioReps = [];
         bioReps.forEach(siRNA => {
           const dct = deltaCt[siRNA]?.[primer];
           if(dct===undefined) return;
           relExps.push(Math.pow(2,-(dct - ntcRef)));
+          repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
+          repBioReps.push(siRNA);
         });
         if(!relExps.length) return;
         const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
@@ -2277,7 +2497,8 @@ function runAnalysis(){
           : NaN;
         targetArr.push({siRNA:treatment, primer, meanRE, seRE,
           refGene:refGeneInput,
-          kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+          kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
+          repWells, repBioReps});
       });
     }
 
@@ -2288,7 +2509,7 @@ function runAnalysis(){
       primers.forEach(primer => {
         const ntcRef = ntcMean[primer];
         if(ntcRef===undefined) return;
-        const relExps = [];
+        const relExps = [], repWells = [], repBioReps = [];
         bioReps.forEach(siRNA => {
           const refKey = Object.keys(avgCt[siRNA] || {}).find(p => p.toLowerCase()===refGeneLower);
           const refCt = refKey ? avgCt[siRNA]?.[refKey] : undefined;
@@ -2317,6 +2538,8 @@ function runAnalysis(){
           const ddct = dct - ntcRef;
           const relExp = Math.pow(2,-ddct);
           relExps.push(relExp);
+          repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
+          repBioReps.push(siRNA);
           detailRows.push({
             row_type:       'target_gene',
             housekeeping_gene: refGeneInput,
@@ -2343,7 +2566,8 @@ function runAnalysis(){
           : NaN;
         kdResults.push({siRNA:treatment, primer, meanRE, seRE,
           refGene:refGeneInput,
-          kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps});
+          kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
+          repWells, repBioReps});
       });
     });
     ntcOnly.forEach(treatment => {
@@ -2487,13 +2711,35 @@ function mergeMultiPlateResults(allPlateResults, refGenesInput){
   return merged;
 }
 
+/*
+ * Per-plate merge: combine results from all plates without siRNA suffixes.
+ * Plate info is already embedded in each row's .plate field by computePerPlateAnalysis.
+ */
+function mergeMultiPlateResultsPerPlate(allPlateResults, refGenesInput){
+  const merged = {};
+  refGenesInput.forEach(rg => {
+    const allKd = [], allNtc = [], allDetail = [];
+    allPlateResults.forEach(({perRefGene}) => {
+      const view = perRefGene[rg];
+      if(!view) return;
+      view.kdResults.forEach(r => allKd.push({...r}));
+      view.ntcResults.forEach(r => allNtc.push({...r}));
+      view.detailRows.forEach(r => allDetail.push({...r}));
+    });
+    if(allKd.length) merged[rg] = {refGene:rg, kdResults:allKd, ntcResults:allNtc, detailRows:allDetail};
+  });
+  return merged;
+}
+
 /* ═══════════════════════════════════════════════════════
    RENDER TABLES
 ═══════════════════════════════════════════════════════ */
 function renderKDTable(kd){
   const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  const hasPlate = sorted.some(r => r.plate);
+  const plateHeader = hasPlate ? '<th>Plate</th>' : '';
   let html=`<thead><tr>
-    <th>siRNA</th><th>Target Primer</th><th>Expression (% of NTC)</th><th>SE (%)</th>
+    ${plateHeader}<th>siRNA</th><th>Target Primer</th><th>Expression (% of NTC)</th><th>SE (%)</th>
     <th>KD Efficiency</th><th>KD ± SE (%)</th><th>N bio-reps</th><th>Grade</th>
   </tr></thead><tbody>`;
   sorted.forEach(r => {
@@ -2508,8 +2754,9 @@ function renderKDTable(kd){
     const exprSePct=r.seRE*100;
     const exprBarW=Math.min(Math.max(exprPct,0),100).toFixed(0);
     const exprBarC=exprPct>100?'#1d4ed8':exprPct<=30?'#34a853':exprPct<=60?'#ffa000':'#ea4335';
+    const plateCell = hasPlate ? `<td>${r.plate||''}</td>` : '';
     html+=`<tr>
-      <td><strong>${r.siRNA}</strong></td><td>${r.primer}</td>
+      ${plateCell}<td><strong>${r.siRNA}</strong></td><td>${r.primer}</td>
       <td style="min-width:160px">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="min-width:58px;font-weight:700">${exprPct.toFixed(2)}%</span>
@@ -2547,7 +2794,7 @@ function renderDetailTable(rows){
   const sortSel=document.getElementById('detailSortCol');
   sortSel.innerHTML=cols.map(c=>`<option value="${c}">${c}</option>`).join('');
   if(!detailViewState.sortCol || !cols.includes(detailViewState.sortCol)){
-    detailViewState.sortCol=cols.includes('treatment')?'treatment':cols[0];
+    detailViewState.sortCol=cols.includes('primer')?'primer':cols.includes('treatment')?'treatment':cols[0];
   }
   sortSel.value=detailViewState.sortCol;
 
@@ -2627,40 +2874,29 @@ function renderSummaryCards(kd){
 /* ═══════════════════════════════════════════════════════
    CHARTS
 ═══════════════════════════════════════════════════════ */
-function renderCharts(kd){
-  const refGene = (analysisResult&&analysisResult.refGene)||'';
-  const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
-  const ntcData = (showNTC && analysisResult&&analysisResult.ntcResults)||[];
-  const activePrimers = new Set(kd.map(r=>r.primer));
-  const ntcByPrimer=[...ntcData].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
-  const kdByPrimer=[...kd].sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
-  /* group by primer: NTC first, then siRNA entries — NTC sits next to its target */
-  const allSorted=[], isNTC=[];
-  [...activePrimers].sort((a,b)=>a.localeCompare(b)).forEach(primer=>{
-    ntcByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTC.push(true);});
-    kdByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTC.push(false);});
-  });
-  const nGroups = allSorted.length;
-  const PX_PER_GROUP = 60;  // px per bar/group; raise to spread out, lower to compact
-  const chartW = Math.max(600, nGroups * PX_PER_GROUP);
-  const chartH = Math.max(500, Math.min(900, 440 + nGroups * 6));
-  const labels =allSorted.map(r=>`${r.siRNA}<br>(${r.primer})`);
 
-  const kdVals =allSorted.map(r=>+r.kd.toFixed(2));
-  const seKDPct=allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
-  const seExprPct=allSorted.map(r=>isNaN(r.seRE)?null:+(r.seRE*100).toFixed(2));
-  const colors =allSorted.map((r,i)=>isNTC[i]?'#9ca3af':r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
+/* Build one set of three Plotly charts (Bar/Dot/Rel) into the given div IDs */
+function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, ntcData, refGene, compact){
+  const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
+  const nGroups = allSorted.length;
+  const PX_PER_GROUP = 60;
+  const chartW = Math.max(600, nGroups * PX_PER_GROUP);
+  const marginB = compact ? 120 : 200;
+  const chartH = compact
+    ? Math.max(380, Math.min(700, 320 + nGroups * 6))
+    : Math.max(500, Math.min(900, 440 + nGroups * 6));
+  const labels = allSorted.map(r=>`${r.siRNA}<br>(${r.primer})`);
+
+  const kdVals   = allSorted.map(r=>+r.kd.toFixed(2));
+  const seKDPct  = allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
+  const seExprPct= allSorted.map(r=>isNaN(r.seRE)?null:+(r.seRE*100).toFixed(2));
+  const colors   = allSorted.map((r,i)=>isNTCArr[i]?'#9ca3af':r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
   const fnt={family:'"Segoe UI",-apple-system,BlinkMacSystemFont,sans-serif',color:'#334155'};
   const axBase={gridcolor:'#e8edf3',linecolor:'#d0d7e3',tickfont:{size:11,color:'#64748b'},zeroline:false};
   const CL={
-    plot_bgcolor:'rgba(247,249,252,0.7)',
-    paper_bgcolor:'#ffffff',
-    font:fnt,
-    width:chartW,
-    height:chartH,
-    margin:{t:60,b:200,l:70,r:20},
-    xaxis:{...axBase,tickangle:-40},
-    yaxis:{...axBase},
+    plot_bgcolor:'rgba(247,249,252,0.7)',paper_bgcolor:'#ffffff',font:fnt,
+    width:chartW,height:chartH,margin:{t:60,b:marginB,l:70,r:20},
+    xaxis:{...axBase,tickangle:-40},yaxis:{...axBase},
     legend:{orientation:'h',y:-0.5,font:{size:11}},
     hoverlabel:{font:{family:fnt.family,size:12},bgcolor:'white',bordercolor:'#cdd5e0'}
   };
@@ -2668,7 +2904,7 @@ function renderCharts(kd){
 
   const barAnnotations=labels.map((lbl,i)=>({x:lbl,y:kdVals[i],xref:'x',yref:'y',
     text:kdVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
-  Plotly.newPlot('plotBar',[
+  Plotly.newPlot(plotBarId,[
     {type:'bar',x:labels,y:kdVals,
      error_y:{type:'data',array:seKDPct,visible:true,thickness:1.5,width:4,color:'#475569'},
      marker:{color:colors,opacity:.82,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
@@ -2676,32 +2912,36 @@ function renderCharts(kd){
      hovertemplate:'<b>%{x}</b><br>KD: %{y:.1f}%<br>SE: %{customdata:.2f}%<extra></extra>'}
   ],{...CL,title:titleStyle('siRNA Knockdown Efficiency (%)'),
      yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}},range:[-20,120]},
-     annotations:barAnnotations
-  },{responsive:false});
+     annotations:barAnnotations},{responsive:false});
 
   const dotT=[];
   allSorted.forEach((r,i)=>{
     const lbl=`${r.siRNA}<br>(${r.primer})`;
+    const wells = r.repWells || r.reps.map(()=>'');
+    const bioReps = r.repBioReps || r.reps.map(()=>'');
     dotT.push({showlegend:false,x:r.reps.map(()=>lbl),
-      y:r.reps.map(v=>+((1-v)*100).toFixed(2)),mode:'markers',type:'scatter',
-      marker:{size:9,color:colors[i],symbol:'circle-open',line:{width:2}}});
+      y:r.reps.map(v=>+((1-v)*100).toFixed(2)),
+      customdata:r.reps.map((_,j)=>({well:wells[j]||'',bio_rep:bioReps[j]||''})),
+      mode:'markers',type:'scatter',
+      marker:{size:9,color:colors[i],symbol:'circle-open',line:{width:2}},
+      hovertemplate:'<b>%{x}</b><br>KD: %{y:.2f}%<br>Well: %{customdata.well}<br>Bio-rep: %{customdata.bio_rep}<extra></extra>'});
     dotT.push({showlegend:false,x:[lbl,lbl],y:isNaN(r.kdSe)?[r.kd,r.kd]:[r.kd-r.kdSe,r.kd+r.kdSe],
-      mode:'lines',type:'scatter',line:{color:colors[i],width:4}});
+      mode:'lines',type:'scatter',line:{color:colors[i],width:4},hoverinfo:'skip'});
     dotT.push({showlegend:false,x:[lbl],y:[r.kd],mode:'markers',type:'scatter',
-      marker:{size:13,color:colors[i],symbol:'diamond'}});
+      marker:{size:13,color:colors[i],symbol:'diamond'},
+      hovertemplate:'<b>%{x}</b><br>Mean KD: %{y:.2f}%<extra></extra>'});
   });
   const dotAnnotations=allSorted.map((r,i)=>({x:`${r.siRNA}<br>(${r.primer})`,y:r.kd,xref:'x',yref:'y',
     text:r.kd.toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
-  Plotly.newPlot('plotDot',dotT,{...CL,
+  Plotly.newPlot(plotDotId,dotT,{...CL,
     title:titleStyle('Individual Replicates — KD% (Mean ± SE)'),
     yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}}},
-    annotations:dotAnnotations
-  },{responsive:false});
+    annotations:dotAnnotations},{responsive:false});
 
   const exprVals=allSorted.map(r=>+(r.meanRE*100).toFixed(2));
   const relAnnotations=labels.map((lbl,i)=>({x:lbl,y:exprVals[i],xref:'x',yref:'y',
     text:exprVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
-  Plotly.newPlot('plotRel',[
+  Plotly.newPlot(plotRelId,[
     {type:'bar',x:labels,y:exprVals,
      error_y:{type:'data',array:seExprPct,visible:true,thickness:1.5,width:4,color:'#475569'},
      marker:{color:colors,opacity:.82,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
@@ -2710,8 +2950,80 @@ function renderCharts(kd){
   ],{...CL,
     title:titleStyle('Expression Relative to NTC (NTC = 100%)'),
     yaxis:{...axBase,title:{text:'Expression (% of NTC)',font:{size:12}}},
-    annotations:relAnnotations
-  },{responsive:false});
+    annotations:relAnnotations},{responsive:false});
+}
+
+/* Build sorted allSorted + isNTC arrays for a given kd slice */
+function _buildSorted(kdSlice, ntcSlice){
+  const activePrimers = new Set(kdSlice.map(r=>r.primer));
+  const ntcByPrimer = [...ntcSlice].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
+  const kdByPrimer  = [...kdSlice].sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
+  const allSorted=[], isNTCArr=[];
+  [...activePrimers].sort((a,b)=>a.localeCompare(b)).forEach(primer=>{
+    ntcByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTCArr.push(true);});
+    kdByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTCArr.push(false);});
+  });
+  return {allSorted, isNTCArr};
+}
+
+function renderCharts(kd){
+  const refGene = (analysisResult&&analysisResult.refGene)||'';
+  const ntcData = (showNTC && analysisResult&&analysisResult.ntcResults)||[];
+  const isPerPlate = !!(analysisResult&&analysisResult.isPerPlate);
+  const plateLabels = isPerPlate ? (analysisResult.allPlateLabels||[]) : null;
+
+  // Determine which plates are currently selected (plate filter in Results)
+  const selectedPlates = isPerPlate ? getSelectedResultPlates() : null;
+  const activePlates = plateLabels
+    ? (selectedPlates === null ? plateLabels : plateLabels.filter(p=>selectedPlates.includes(p)))
+    : null;
+
+  ['figRelContainer','figBarContainer','figDotContainer'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML='';
+  });
+
+  if(isPerPlate && activePlates && activePlates.length > 1){
+    // One chart set per plate
+    activePlates.forEach(plateLabel=>{
+      const kdSlice = kd.filter(r=>r.plate===plateLabel);
+      const ntcSlice = ntcData.filter(r=>r.plate===plateLabel);
+      const {allSorted, isNTCArr} = _buildSorted(kdSlice, ntcSlice);
+      if(!allSorted.length) return;
+
+      const safePl = plateLabel.replace(/[^A-Za-z0-9_-]/g,'_');
+      // Inject divs into each container
+      ['Rel','Bar','Dot'].forEach(type=>{
+        const container = document.getElementById(`fig${type}Container`);
+        if(!container) return;
+        const section = document.createElement('div');
+        section.className = 'fig-plate-section';
+        section.innerHTML = `<div class="fig-plate-label">${esc(plateLabel)}</div>`+
+          `<div class="fig-wrap"><div id="plot${type}_${safePl}" style="width:100%;height:100%"></div></div>`;
+        container.appendChild(section);
+      });
+
+      _renderChartSet(
+        `plotBar_${safePl}`, `plotDot_${safePl}`, `plotRel_${safePl}`,
+        allSorted, isNTCArr, ntcSlice, refGene, true
+      );
+    });
+  } else {
+    // Single chart (single-plate, global NTC, or only 1 plate selected)
+    const kdSlice = (isPerPlate && activePlates && activePlates.length===1)
+      ? kd.filter(r=>r.plate===activePlates[0]) : kd;
+    const ntcSlice = (isPerPlate && activePlates && activePlates.length===1)
+      ? ntcData.filter(r=>r.plate===activePlates[0]) : ntcData;
+    const {allSorted, isNTCArr} = _buildSorted(kdSlice, ntcSlice);
+
+    ['Rel','Bar','Dot'].forEach(type=>{
+      const container = document.getElementById(`fig${type}Container`);
+      if(!container) return;
+      container.innerHTML=`<div class="fig-wrap"><div id="plot${type}" style="width:100%;height:100%"></div></div>`;
+    });
+
+    _renderChartSet('plotBar','plotDot','plotRel', allSorted, isNTCArr, ntcSlice, refGene);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2722,6 +3034,31 @@ function toggleNTC(){
   const label=showNTC?'Hide NTC':'Show NTC';
   document.querySelectorAll('#card4 .tab-panel button[onclick="toggleNTC()"]').forEach(b=>b.textContent=label);
   if(analysisResult) renderCharts(currentFilteredKd||analysisResult.kdResults);
+}
+
+/* Download all visible charts for a given type (Rel/Bar/Dot) */
+function downloadFigAll(type, suffix){
+  const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const base=resultFileStem||'Figure';
+  const refSuffix=(currentResultRefGene||'HK').replace(/[^A-Za-z0-9._-]+/g,'_');
+  const container=document.getElementById(`fig${type}Container`);
+  if(!container) return;
+  const plots=container.querySelectorAll('[id^="plot'+type+'"]');
+  plots.forEach(el=>{
+    const platePart = el.id.includes('_') ? '_'+el.id.replace(/^plot[A-Za-z]+_/,'') : '';
+    const filename=`${today}_${base}_${refSuffix}_${suffix}${platePart}`;
+    Plotly.downloadImage(el,{format:'png',filename,width:1400,height:900,scale:2});
+  });
+}
+
+/* Legacy single-plot download (used by exportPrismFig and other callers) */
+function downloadFig(divId,suffix){
+  const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const base=resultFileStem||'Figure';
+  const refSuffix = (currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_');
+  const filename=`${today}_${base}_${refSuffix}_${suffix}`;
+  const el=document.getElementById(divId);
+  if(el) Plotly.downloadImage(el,{format:'png',filename,width:1400,height:900,scale:2});
 }
 
 function toggleMappingOptions(){
@@ -2782,38 +3119,19 @@ function _makeZip(files){
 }
 
 function exportPrismFig(chartId){
-  // Find the Export .prism button that was clicked (inside the active tab panel)
   const activePanel = document.querySelector('#resGroup2 .tab-panel.active');
   const prismBtn = activePanel ? activePanel.querySelector('button[onclick*="exportPrismFig"]') : null;
   if(!analysisResult){ btnFlash(prismBtn,'Run analysis first'); return; }
   const isRelChart = chartId==='figRel';
 
   const kd = currentFilteredKd || analysisResult.kdResults;
-  const activePrimers = new Set(kd.map(r=>r.primer));
-  // ntcSorted for display (respects showNTC toggle)
-  const ntcDisplay=(showNTC&&analysisResult.ntcResults)||[];
-  const ntcSorted=[...ntcDisplay].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
-  const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
-  const allSorted=[...ntcSorted,...sorted];
+  const isPerPlate = !!(analysisResult.isPerPlate);
+  const allPlateLabels = analysisResult.allPlateLabels || [];
+  const selectedPlates = isPerPlate ? getSelectedResultPlates() : null;
+  const activePlates = isPerPlate
+    ? (selectedPlates === null ? allPlateLabels : allPlateLabels.filter(p=>selectedPlates.includes(p)))
+    : null;
 
-  // Normalize reps by the NTC arithmetic mean per primer so that Prism's arithmetic mean
-  // of NTC = exactly 1.0. Always use analysisResult.ntcResults (independent of showNTC).
-  const ntcRepArithMean = {};
-  (analysisResult.ntcResults||[]).filter(r=>activePrimers.has(r.primer)).forEach(r => {
-    if(r.reps.length && ntcRepArithMean[r.primer]===undefined)
-      ntcRepArithMean[r.primer] = r.reps.reduce((a,b)=>a+b,0)/r.reps.length;
-  });
-
-  const groups=allSorted.map(r=>({
-    title:`${r.siRNA} (${r.primer})`,
-    vals:r.reps.map(v=>{
-      const norm = ntcRepArithMean[r.primer] ?? 1;
-      return isRelChart ? +(v/norm).toFixed(6) : +(1 - v/norm).toFixed(6);
-    })
-  }));
-  if(!groups.length){ btnFlash(prismBtn,'No data to export'); return; }
-
-  const maxReps=Math.max(...groups.map(g=>g.vals.length));
   const today=new Date().toISOString().slice(0,10);
   const now=new Date().toISOString().slice(0,19)+'Z';
   const base=resultFileStem||'qPCR';
@@ -2823,45 +3141,79 @@ function exportPrismFig(chartId){
 
   const newUID=()=>crypto.randomUUID().toUpperCase();
   const randHex32=()=>Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
-  const sheetUID=newUID(),tableUID=newUID(),infoUID=newUID();
-  const yUIDs=groups.map(()=>newUID());
-
-  // CSV: rows=replicates, cols=groups (one value per group per row)
-  const csvText=Array.from({length:maxReps},(_,ri)=>
-    groups.map(g=>ri<g.vals.length?g.vals[ri]:'').join(',')
-  ).join('\n');
-
   const drRep=(lastRow)=>({"@class":"DriverReplicate","valueType":"real","commonAttributes":["NUMERIC"],"significantDigitsCount":7,"lastRow":lastRow,"firstRow":0});
+  const J=o=>JSON.stringify(o,null,'\t');
+  const enc=new TextEncoder();
 
-  const yDSArr=groups.map((g,gi)=>({
-    "@class":"DataSet",
-    "$id":"sheets/data_sheet/data_table/data_set.schema.json",
-    "uid":yUIDs[gi],"fenID":gi+1,
-    "format":"y_single",
-    "title":g.title,
-    "flags":[],
-    "attributes":["DS_ATTR_Y"],
-    "replicates":[drRep(maxReps-1)]
-  }));
+  /* Build groups array for one slice of kd data */
+  function buildGroups(kdSlice, ntcSlice){
+    const activePrimers = new Set(kdSlice.map(r=>r.primer));
+    const ntcDisplay = showNTC ? ntcSlice : [];
+    const ntcSorted=[...ntcDisplay].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+    const sorted=[...kdSlice].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+    const allSorted=[...ntcSorted,...sorted];
+    // NTC arithmetic mean per primer for this slice (use all ntcResults for this plate regardless of showNTC)
+    const ntcRepArithMean = {};
+    ntcSlice.filter(r=>activePrimers.has(r.primer)).forEach(r => {
+      if(r.reps.length && ntcRepArithMean[r.primer]===undefined)
+        ntcRepArithMean[r.primer] = r.reps.reduce((a,b)=>a+b,0)/r.reps.length;
+    });
+    return allSorted.map(r=>({
+      title:`${r.siRNA} (${r.primer})`,
+      vals:r.reps.map(v=>{
+        const norm = ntcRepArithMean[r.primer] ?? 1;
+        return isRelChart ? +(v/norm).toFixed(6) : +(1 - v/norm).toFixed(6);
+      })
+    }));
+  }
 
-  const tblSection={
-    "@class":"DataTable",
-    "$id":"sheets/data_sheet/data_table/data_table.schema.json",
-    "uid":tableUID,"format":"column","dataFormat":"y_single",
-    "dataSets":yUIDs
-  };
-  const sheetJSON={
-    "@class":"DataSheet",
-    "$id":"sheets/data_sheet/data_sheet.schema.json",
-    "uid":sheetUID,"fenID":0,"title":yLabel,"table":tblSection,
-    "font":{"family":"Arial","size":10.0},"titleWidth":32,"xSubColWidth":113,
-    "maxDataSets":2048,"maxRow":500000,
-    "selectionRange":{"startCell":{"row":0,"column":0,"subcolumn":0},"endCell":{"row":0,"column":0,"subcolumn":0}},
-    "anchorRow":0,"anchorColumn":0,"firstSubColumn":0,"xRowWidth":0,"rowTitlesWidth":39,"subColumnTitleType":"default"
-  };
+  /* Build one data sheet's ZIP entries */
+  function buildSheetEntries(groups, sheetTitle, fenID){
+    if(!groups.length) return {sheetUID:null, files:[]};
+    const maxReps=Math.max(...groups.map(g=>g.vals.length));
+    const sheetUID=newUID(), tableUID=newUID();
+    const yUIDs=groups.map(()=>newUID());
+    const csvText=Array.from({length:maxReps},(_,ri)=>groups.map(g=>ri<g.vals.length?g.vals[ri]:'').join(',')).join('\n');
+    const yDSArr=groups.map((g,gi)=>({
+      "@class":"DataSet","$id":"sheets/data_sheet/data_table/data_set.schema.json",
+      "uid":yUIDs[gi],"fenID":gi+1,"format":"y_single","title":g.title,
+      "flags":[],"attributes":["DS_ATTR_Y"],"replicates":[drRep(maxReps-1)]
+    }));
+    const tblSection={"@class":"DataTable","$id":"sheets/data_sheet/data_table/data_table.schema.json","uid":tableUID,"format":"column","dataFormat":"y_single","dataSets":yUIDs};
+    const sheetJSON={"@class":"DataSheet","$id":"sheets/data_sheet/data_sheet.schema.json","uid":sheetUID,"fenID":fenID,"title":sheetTitle,"table":tblSection,"font":{"family":"Arial","size":10.0},"titleWidth":32,"xSubColWidth":113,"maxDataSets":2048,"maxRow":500000,"selectionRange":{"startCell":{"row":0,"column":0,"subcolumn":0},"endCell":{"row":0,"column":0,"subcolumn":0}},"anchorRow":0,"anchorColumn":0,"firstSubColumn":0,"xRowWidth":0,"rowTitlesWidth":39,"subColumnTitleType":"default"};
+    const contentJSON={"$id":"sheets/data_sheet/data_table/data_table_storage.schema.json","numberOfColumns":groups.length,"numberOfRows":maxReps,"version":1};
+    const files=[
+      {name:`data/sheets/${sheetUID}/sheet.json`,data:enc.encode(J(sheetJSON))},
+      ...yUIDs.map((uid,gi)=>({name:`data/sets/${uid}.json`,data:enc.encode(J(yDSArr[gi]))})),
+      {name:`data/tables/${tableUID}/content.json`,data:enc.encode(J(contentJSON))},
+      {name:`data/tables/${tableUID}/data.csv`,data:enc.encode(csvText)},
+      {name:`data/tables/${tableUID}/data.dt`,data:enc.encode(randHex32())},
+    ];
+    return {sheetUID, sheetTitle, files};
+  }
+
+  // Build per-plate or single sheets
+  const sheetEntries = [];
+  if(isPerPlate && activePlates && activePlates.length > 1){
+    activePlates.forEach((plateLabel, i) => {
+      const kdSlice = kd.filter(r=>r.plate===plateLabel);
+      const ntcSlice = (analysisResult.ntcResults||[]).filter(r=>r.plate===plateLabel);
+      const groups = buildGroups(kdSlice, ntcSlice);
+      sheetEntries.push(buildSheetEntries(groups, `${plateLabel} — ${yLabel}`, i));
+    });
+  } else {
+    const ntcAll = analysisResult.ntcResults||[];
+    const groups = buildGroups(kd, ntcAll);
+    sheetEntries.push(buildSheetEntries(groups, yLabel, 0));
+  }
+
+  const validSheets = sheetEntries.filter(s=>s.sheetUID);
+  if(!validSheets.length){ btnFlash(prismBtn,'No data to export'); return; }
+
+  const infoUID=newUID();
+  const allSheetUIDs = validSheets.map(s=>s.sheetUID);
   const infoJSON={
-    "@class":"InfoSheet",
-    "$id":"sheets/info_sheet/info_sheet.schema.json",
+    "@class":"InfoSheet","$id":"sheets/info_sheet/info_sheet.schema.json",
     "uid":infoUID,"fenID":0,"title":"Project info 1",
     "experimentDate":today,"notesText":"Exported by qPCR Knockdown Efficiency Analyzer",
     "uiState":{"columnNamesWidth":0.5,"columnValuesWidth":0.5,"constantPanelProportion":0.4},
@@ -2869,40 +3221,31 @@ function exportPrismFig(chartId){
     "constants":[
       {"name":"Experiment Date","value":today},
       {"name":"Y axis","value":yLabel},
-      {"name":"Replicates","value":String(maxReps)},
-      {"name":"Groups","value":groups.map(g=>g.title).join(', ')}
+      {"name":"Plates","value":validSheets.map(s=>s.sheetTitle).join('; ')}
     ]
   };
+  const sheetAttrMap = {[infoUID]:{"title":"Project info 1"}};
+  validSheets.forEach(s=>{ sheetAttrMap[s.sheetUID]={"title":s.sheetTitle}; });
   const docJSON={
     "@class":"Document","$id":"document.schema.json",
     "creationDate":now,"modificationDate":now,
     "createdBy":{"name":"Prism","user":"","version":"10.5.0.774","platform":"Win"},
     "modifiedBy":{"name":"Prism","user":"","version":"10.5.0.774","platform":"Win"},
     "formatVersion":"1-5-0","minFormatVersion":"1-0-0","minPrismVersion":"10.0.0",
-    "sheets":{"graphs":[],"analyses":[],"info":[infoUID],"data":[sheetUID]},
+    "sheets":{"graphs":[],"analyses":[],"info":[infoUID],"data":allSheetUIDs},
     "uiSettings":{
-      "currentSheetType":"Data","viewMode":"sheet","galleryScaleFactor":100,"nextDataSheetNumber":2,
+      "currentSheetType":"Data","viewMode":"sheet","galleryScaleFactor":100,"nextDataSheetNumber":allSheetUIDs.length+1,
       "printer":{"defaultPaperSize":{"width":8.5,"height":11.0},"deviceName":"","driverVersion":0,"specVersion":0,"driverExtra":0},
       "navigator":{"width":240,"collapsedFolders":{"data":false,"info":false,"analyses":false,"graphs":false,"layouts":false,"dataAndAnalyses":false,"search":false,"family":false}},
-      "currentSheets":{"data":sheetUID,"info":infoUID}
+      "currentSheets":{"data":allSheetUIDs[0],"info":infoUID}
     },
-    "sheetAttributesMap":{[sheetUID]:{"title":yLabel},[infoUID]:{"title":"Project info 1"}}
-  };
-  const contentJSON={
-    "$id":"sheets/data_sheet/data_table/data_table_storage.schema.json",
-    "numberOfColumns":groups.length,"numberOfRows":maxReps,"version":1
+    "sheetAttributesMap":sheetAttrMap
   };
 
-  const J=o=>JSON.stringify(o,null,'\t');
-  const enc=new TextEncoder();
   const zipFiles=[
     {name:'document.json',data:enc.encode(J(docJSON))},
     {name:`info/${infoUID}/sheet.json`,data:enc.encode(J(infoJSON))},
-    {name:`data/sheets/${sheetUID}/sheet.json`,data:enc.encode(J(sheetJSON))},
-    ...yUIDs.map((uid,gi)=>({name:`data/sets/${uid}.json`,data:enc.encode(J(yDSArr[gi]))})),
-    {name:`data/tables/${tableUID}/content.json`,data:enc.encode(J(contentJSON))},
-    {name:`data/tables/${tableUID}/data.csv`,data:enc.encode(csvText)},
-    {name:`data/tables/${tableUID}/data.dt`,data:enc.encode(randHex32())},
+    ...validSheets.flatMap(s=>s.files),
   ];
   const zip=_makeZip(zipFiles);
   const fname=`${today.replace(/-/g,'')}_${base}_${suffix}.prism`;
@@ -2913,12 +3256,15 @@ function exportPrismFig(chartId){
 
 function downloadKDcsv(){
   if(!analysisResult) return;
-  let csv='Housekeeping_Gene,siRNA,Target_Primer,Expression_pct_of_NTC,SE_pct_of_NTC,Mean_RelExp,SE_RelExp,KD_pct,KD_SE_pct,N,Individual_RelExp\n';
   const fmtSE = v => isNaN(v)?'N/A':v.toFixed(4);
   const fmtSE2= v => isNaN(v)?'N/A':v.toFixed(2);
   const kdRows = currentFilteredKd || analysisResult.kdResults;
+  const hasPlate = kdRows.some(r => r.plate);
+  const plateCsvHdr = hasPlate ? 'Plate,' : '';
+  let csv=`Housekeeping_Gene,${plateCsvHdr}siRNA,Target_Primer,Expression_pct_of_NTC,SE_pct_of_NTC,Mean_RelExp,SE_RelExp,KD_pct,KD_SE_pct,N,Individual_RelExp\n`;
   kdRows.forEach(r=>{
-    csv+=`${currentResultRefGene},${r.siRNA},${r.primer},${(r.meanRE*100).toFixed(4)},${fmtSE(r.seRE*100)},${r.meanRE.toFixed(6)},${fmtSE(r.seRE)},`
+    const plateVal = hasPlate ? `${r.plate||''},` : '';
+    csv+=`${currentResultRefGene},${plateVal}${r.siRNA},${r.primer},${(r.meanRE*100).toFixed(4)},${fmtSE(r.seRE*100)},${r.meanRE.toFixed(6)},${fmtSE(r.seRE)},`
       +`${r.kd.toFixed(2)},${fmtSE2(r.kdSe)},${r.n},`
         +`"${r.reps.map(v=>v.toFixed(4)).join(';')}"\n`;
   });
