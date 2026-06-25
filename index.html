@@ -230,12 +230,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
 <div class="container">
 
-  <div class="steps">
-    <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Upload Files</div></div>
-    <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Map Columns</div></div>
-    <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Configure</div></div>
-    <div class="step" id="step4"><div class="step-num">4</div><div class="step-label">Results & Figures</div></div>
-  </div>
 
   <div class="quick-start">
     <h3>Quick Start - Format</h3>
@@ -641,11 +635,9 @@ function renderFileChips(containerId, fileList, assignFnName, removeFnName){
   if(!el) return;
   if(!fileList.length){ el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = 'block';
-  const distinctPlates = getDistinctPlateNumbers();
-  // Allow one extra plate number above current max for "new plate" option
-  const maxPlate = Math.max(...distinctPlates, 0);
-  const plateOptions = [...distinctPlates];
-  if(!plateOptions.includes(maxPlate + 1)) plateOptions.push(maxPlate + 1);
+  // Plate 1 through total file count + 1
+  const totalFiles = layoutFiles.length + resultFiles.length;
+  const plateOptions = Array.from({length: totalFiles + 1}, (_, i) => i + 1);
   const showPlate = layoutFiles.length + resultFiles.length > 1;
   el.innerHTML = fileList.map((lf, idx) => {
     const plateSel = showPlate
@@ -677,24 +669,18 @@ function updateUniversalMetaVisibility(){
 
 function assignLayoutFilePlate(idx, plateNum){
   layoutFiles[idx].assignedPlate = plateNum;
-  const p1 = getPlate1LayoutFile();
-  layoutAoa    = p1?.aoa ?? null;
-  layoutHdrIdx = p1?.hdrIdx ?? -1;
-  if(layoutAoa){ tryShowLayoutMapper(); }
-  else { document.getElementById('layoutMapperWrap').style.display = 'none'; }
+  syncPlate1Globals();
+  refreshUploadUI();
   updateIsMultiPlate();
   renderLayoutFileChips();
-  renderResultFileChips(); // option counts may change
+  renderResultFileChips();
   updateMultiPlateNotice();
 }
 
 function assignResultFilePlate(idx, plateNum){
   resultFiles[idx].assignedPlate = plateNum;
-  const p1 = getPlate1ResultFile();
-  resultAoa    = p1?.aoa ?? null;
-  resultHdrIdx = p1?.hdrIdx ?? -1;
-  if(resultAoa && resultHdrIdx >= 0){ tryShowResultMapper(); }
-  else { document.getElementById('resultMapperWrap').style.display = 'none'; }
+  syncPlate1Globals();
+  refreshUploadUI();
   updateIsMultiPlate();
   renderLayoutFileChips();
   renderResultFileChips();
@@ -720,25 +706,81 @@ function invalidateMerge(){
 }
 
 /* Remove one file from the layout list */
-function removeLayoutFile(idx){
-  invalidateMerge();
-  layoutFiles.splice(idx, 1);
-  const p1 = getPlate1LayoutFile();
-  layoutAoa    = p1?.aoa ?? null;
-  layoutHdrIdx = p1?.hdrIdx ?? -1;
+/* After removing a file, renumber all assignedPlate values so they start from 1
+   with no gaps, preserving relative order. This ensures Plate 1 globals stay valid. */
+function renumberPlatesFromOne(){
+  const allNums = [...new Set([
+    ...layoutFiles.map(f=>f.assignedPlate),
+    ...resultFiles.map(f=>f.assignedPlate)
+  ])].sort((a,b)=>a-b);
+  if(!allNums.length) return;
+  const remap = {};
+  allNums.forEach((n,i) => { remap[n] = i+1; });
+  layoutFiles.forEach(f => { f.assignedPlate = remap[f.assignedPlate]; });
+  resultFiles.forEach(f => { f.assignedPlate = remap[f.assignedPlate]; });
+}
+
+/* Sync active-file globals: use first loaded file in array order for column mapping.
+   Plate-1 lookup is used for confirmMapping; here we just need a valid loaded file. */
+function syncPlate1Globals(){
+  const p1l = getPlate1LayoutFile() || layoutFiles.find(f => f.aoa) || null;
+  layoutAoa    = p1l?.aoa    ?? null;
+  layoutHdrIdx = p1l?.hdrIdx ?? -1;
+  const p1r = getPlate1ResultFile() || resultFiles.find(f => f.aoa && f.hdrIdx >= 0) || null;
+  resultAoa      = p1r?.aoa      ?? null;
+  resultHdrIdx   = p1r?.hdrIdx   ?? -1;
+  resultFileStem = p1r?.fileStem ?? '';
+}
+
+/* Refresh both upload zones and mappers.
+   Column Mapping uses the first loaded file in array order, independent of plate number. */
+function refreshUploadUI(){
+  // Layout zone + mapper \u2014 first loaded file in array
+  const firstLayout = layoutFiles.find(f => f.aoa);
   if(!layoutFiles.length){
     const z = document.getElementById('zoneLayout');
     z.classList.remove('done');
     z.querySelector('.uz-title').textContent = 'Click or drag Metadata file here';
     z.querySelector('.uz-icon').textContent = '\uD83D\uDCCB';
     document.getElementById('layoutMapperWrap').style.display = 'none';
-  } else if(p1?.aoa){
+  } else if(firstLayout){
     const extra = layoutFiles.length > 1 ? ` + ${layoutFiles.length - 1} more` : '';
-    markZoneDone('zoneLayout', `\u2705 ${p1.file.name}${extra}`);
+    markZoneDone('zoneLayout', `\u2705 ${firstLayout.file.name}${extra}`);
+    // Temporarily point globals to this file so tryShowLayoutMapper reads it
+    const _lAoa = layoutAoa, _lHdr = layoutHdrIdx;
+    layoutAoa = firstLayout.aoa; layoutHdrIdx = firstLayout.hdrIdx;
     tryShowLayoutMapper();
+    layoutAoa = _lAoa; layoutHdrIdx = _lHdr;
   } else {
     document.getElementById('layoutMapperWrap').style.display = 'none';
   }
+  // Result zone + mapper \u2014 first loaded file in array
+  const firstResult = resultFiles.find(f => f.aoa && f.hdrIdx >= 0);
+  if(!resultFiles.length){
+    const z = document.getElementById('zoneResult');
+    z.classList.remove('done');
+    z.querySelector('.uz-title').textContent = 'Click or drag Result Excel here';
+    z.querySelector('.uz-icon').textContent = '\uD83D\uDCCA';
+    document.getElementById('resultMapperWrap').style.display = 'none';
+    document.getElementById('hdrOverrideBox').style.display = 'none';
+  } else if(firstResult){
+    const extra = resultFiles.length > 1 ? ` + ${resultFiles.length - 1} more` : '';
+    markZoneDone('zoneResult', `\u2705 ${firstResult.file.name}${extra}`);
+    const _rAoa = resultAoa, _rHdr = resultHdrIdx, _rStem = resultFileStem;
+    resultAoa = firstResult.aoa; resultHdrIdx = firstResult.hdrIdx; resultFileStem = firstResult.fileStem || '';
+    tryShowResultMapper();
+    resultAoa = _rAoa; resultHdrIdx = _rHdr; resultFileStem = _rStem;
+  } else {
+    document.getElementById('resultMapperWrap').style.display = 'none';
+  }
+}
+
+function removeLayoutFile(idx){
+  invalidateMerge();
+  layoutFiles.splice(idx, 1);
+  renumberPlatesFromOne();
+  syncPlate1Globals();
+  refreshUploadUI();
   updateIsMultiPlate();
   renderLayoutFileChips();
   renderResultFileChips();
@@ -749,24 +791,9 @@ function removeLayoutFile(idx){
 function removeResultFile(idx){
   invalidateMerge();
   resultFiles.splice(idx, 1);
-  const p1 = getPlate1ResultFile();
-  resultAoa      = p1?.aoa ?? null;
-  resultHdrIdx   = p1?.hdrIdx ?? -1;
-  resultFileStem = p1?.fileStem ?? '';
-  if(!resultFiles.length){
-    const z = document.getElementById('zoneResult');
-    z.classList.remove('done');
-    z.querySelector('.uz-title').textContent = 'Click or drag Result Excel here';
-    z.querySelector('.uz-icon').textContent = '\uD83D\uDCCA';
-    document.getElementById('resultMapperWrap').style.display = 'none';
-    document.getElementById('hdrOverrideBox').style.display = 'none';
-  } else if(p1?.aoa && p1.hdrIdx >= 0){
-    const extra = resultFiles.length > 1 ? ` + ${resultFiles.length - 1} more` : '';
-    markZoneDone('zoneResult', `\u2705 ${p1.file.name}${extra}`);
-    tryShowResultMapper();
-  } else {
-    document.getElementById('resultMapperWrap').style.display = 'none';
-  }
+  renumberPlatesFromOne();
+  syncPlate1Globals();
+  refreshUploadUI();
   updateIsMultiPlate();
   renderLayoutFileChips();
   renderResultFileChips();
@@ -1387,6 +1414,21 @@ function buildFullPreview(divId, aoa, hdrIdx, cols, title, wellColIdx){
 ═══════════════════════════════════════════════════════ */
 function confirmMapping(){
   const withMeta  = document.getElementById('withMetaChk')?.checked;
+
+  // Guard: required data must be present
+  if(!resultAoa || resultHdrIdx < 0){
+    showStatus('uploadMergeStatus','error','❌ Please upload a Result file before continuing.');
+    return;
+  }
+  if(!withMeta && !layoutAoa){
+    showStatus('uploadMergeStatus','error','❌ Please upload a Metadata file before continuing.');
+    return;
+  }
+  if(!document.getElementById('rmap_well') || !document.getElementById('rmap_ct')){
+    showStatus('uploadMergeStatus','error','❌ Column mapping is incomplete — please reload your files.');
+    return;
+  }
+
   const rWellCol  = +document.getElementById('rmap_well').value;
   const rCtCol    = +document.getElementById('rmap_ct').value;
 
@@ -1459,14 +1501,13 @@ function confirmMapping(){
     };
     const p1lfs = layoutFiles.filter(f => f.assignedPlate === 1);
     const p1rfs = resultFiles.filter(f => f.assignedPlate === 1);
-    // Skip index 0 combos (already done above via layoutAoa/resultAoa)
+    // Pair by position: Layout_i matches Result_i (not cross-product)
+    // Index 0 already merged above; add the rest by position
     const extraCombos = [];
     if(!withMeta){
-      for(let li = 0; li < p1lfs.length; li++){
-        for(let ri = 0; ri < p1rfs.length; ri++){
-          if(li === 0 && ri === 0) continue; // already merged
-          extraCombos.push({lf: p1lfs[li], rf: p1rfs[ri]});
-        }
+      const pairLen = Math.min(p1lfs.length, p1rfs.length);
+      for(let i = 1; i < pairLen; i++){
+        extraCombos.push({lf: p1lfs[i], rf: p1rfs[i]});
       }
     } else {
       for(let ri = 1; ri < p1rfs.length; ri++){
@@ -1532,17 +1573,17 @@ function confirmMapping(){
         anyFail = true;
         continue;
       }
-      // Merge rows from all layout+result file pairs sharing this plate number
+      // Pair layout+result files by position (index i matches index i, not cross-product)
       let combinedRows = [];
       if(lfs.length && !savedMappingConfig.withMeta){
-        for(const lf of lfs){
-          for(const rf of rfs){
-            if(!lf?.aoa || !rf?.aoa || rf.hdrIdx < 0) continue;
-            combinedRows = combinedRows.concat(buildMergedRowsFromConfig(
-              {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
-              savedMappingConfig
-            ));
-          }
+        const pairLen = Math.min(lfs.length, rfs.length);
+        for(let i = 0; i < pairLen; i++){
+          const lf = lfs[i], rf = rfs[i];
+          if(!lf?.aoa || !rf?.aoa || rf.hdrIdx < 0) continue;
+          combinedRows = combinedRows.concat(buildMergedRowsFromConfig(
+            {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
+            savedMappingConfig
+          ));
         }
       } else {
         for(const rf of rfs){
@@ -3338,6 +3379,7 @@ function splitCSV(line){
 }
 function showStatus(id,type,msg){
   const el=document.getElementById(id);
+  if(!el) return;
   el.className=`alert alert-${type}`;
   el.innerHTML=msg;
   el.classList.remove('hidden');
@@ -3384,6 +3426,7 @@ function clearResult(){
 function setStep(n){
   for(let i=1;i<=4;i++){
     const s=document.getElementById('step'+i);
+    if(!s) continue;
     s.classList.remove('active','done');
     if(i<n) s.classList.add('done');
     else if(i===n) s.classList.add('active');
