@@ -215,6 +215,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .chip-plate-sel{padding:2px 6px;border:1px solid var(--border);border-radius:5px;font-size:.76rem;background:var(--surface);color:var(--primary);font-weight:600;cursor:pointer}
     .chip-del{background:none;border:none;color:#bbb;font-size:.9rem;cursor:pointer;padding:0 3px;line-height:1;flex-shrink:0;border-radius:3px;transition:color .15s}
     .chip-del:hover{color:#e53935}
+    .chip-pair-idx{flex-shrink:0;font-size:.73rem;font-weight:700;color:#fff;background:#3b82f6;border-radius:4px;padding:1px 5px;line-height:1.4;}
     .ntc-mode-section{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
     .ntc-mode-section label{font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-right:16px}
     .multi-plate-notice{font-size:.8rem;padding:6px 10px;background:#eff3fa;border:1px solid #c8d7f0;border-radius:6px;margin-top:8px;color:#334155}
@@ -223,7 +224,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 <body>
 
 <header>
-  <h1>siRNA Knockdown Efficiency Analyzer v1.3</h1>
+  <h1>siRNA Knockdown Efficiency Analyzer v1.4</h1>
   <p>Layout + Raw Data → Merge → 2⁻ΔΔCt → Knockdown Efficiency</p>
   <p class="author">By ILYH</p>
 </header>
@@ -639,18 +640,29 @@ function renderFileChips(containerId, fileList, assignFnName, removeFnName){
   const totalFiles = layoutFiles.length + resultFiles.length;
   const plateOptions = Array.from({length: totalFiles + 1}, (_, i) => i + 1);
   const showPlate = layoutFiles.length + resultFiles.length > 1;
+  // Count how many files per plate so we know which ones need a sub-index label
+  const plateCount = {};
+  fileList.forEach(f => { plateCount[f.assignedPlate] = (plateCount[f.assignedPlate]||0) + 1; });
+  const plateSubIdx = {};
   el.innerHTML = fileList.map((lf, idx) => {
-    const plateSel = showPlate
-      ? `<select class="chip-plate-sel" onchange="${assignFnName}(${idx},+this.value)">${
-          plateOptions.map(p =>
-            `<option value="${p}"${lf.assignedPlate===p?' selected':''}>Plate ${p}</option>`
-          ).join('')
-        }</select>`
-      : '';
+    plateSel = '';
+    if(showPlate){
+      plateSel = `<select class="chip-plate-sel" onchange="${assignFnName}(${idx},+this.value)">${
+        plateOptions.map(p =>
+          `<option value="${p}"${lf.assignedPlate===p?' selected':''}>Plate ${p}</option>`
+        ).join('')
+      }</select>`;
+    }
+    // Sub-index label: only shown when multiple files share the same plate
+    let pairLabel = '';
+    if(plateCount[lf.assignedPlate] > 1){
+      plateSubIdx[lf.assignedPlate] = (plateSubIdx[lf.assignedPlate]||0) + 1;
+      pairLabel = `<span class="chip-pair-idx" title="Paired as file #${plateSubIdx[lf.assignedPlate]} within this plate">#${plateSubIdx[lf.assignedPlate]}</span>`;
+    }
     return `<div class="file-chip">
       <span class="chip-icon">${lf.aoa ? '✅' : '⏳'}</span>
       <span class="chip-name" title="${esc(lf.file.name)}">${esc(lf.file.name)}</span>
-      ${plateSel}
+      ${pairLabel}${plateSel}
       <button class="chip-del" onclick="${removeFnName}(${idx})" title="Remove">✕</button>
     </div>`;
   }).join('');
