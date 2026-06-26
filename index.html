@@ -92,10 +92,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .tab-btn:hover:not(.active){color:var(--primary-dk);background:#f7f9fc}
     .tab-panel{display:none}.tab-panel.active{display:block}
     .fig-wrap{width:100%;min-height:500px;overflow-x:auto;display:flex;justify-content:flex-start;}
+    .fig-plate-section .fig-wrap{min-height:0;}
     .fig-plate-section{margin-bottom:6px;}
     .fig-plate-label{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:6px;padding:4px 10px;background:#f1f5f9;border-radius:6px;display:inline-block;}
     .hidden{display:none}
     .tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
+    #detailTable th{cursor:pointer;user-select:none;white-space:nowrap;}
+    #detailTable th:hover{background:#e8edf5;}
+    #detailTable th.sort-asc::after{content:' ▲';font-size:.7em;color:#3b82f6;}
+    #detailTable th.sort-desc::after{content:' ▼';font-size:.7em;color:#3b82f6;}
      table{width:100%;border-collapse:collapse;font-size:.8rem}
      thead tr{background:#edf1f7;position:sticky;top:0;z-index:1}
      th{padding:8px 10px;border:1px solid #d0d8e8;text-align:center;
@@ -397,7 +402,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px">
           <label><input type="radio" name="ntcMode" value="global" onchange="onNtcModeChange()"> Global NTC — all plates use reference plate's siNTC:</label>
           <span id="globalNtcPlateSelector" style="display:none">
-            <select id="globalNtcPlateSelect" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.8rem" onchange="globalNtcPlateIdx=+this.value"></select>
+            <select id="globalNtcPlateSelect" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.8rem" onchange="globalNtcPlateIdx=+this.value;if(analysisResult)runAnalysis()"></select>
           </span>
         </div>
       </div>
@@ -478,20 +483,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             </div>
             <div class="mapper-item">
               <label>Row Type</label>
-              <select id="detailRowType" onchange="refreshDetailTable()">
-                <option value="all">all</option>
-              </select>
-            </div>
-            <div class="mapper-item">
-              <label>Sort By</label>
-              <select id="detailSortCol" onchange="refreshDetailTable()"></select>
-            </div>
-            <div class="mapper-item">
-              <label>Direction</label>
-              <select id="detailSortDir" onchange="refreshDetailTable()">
-                <option value="asc">asc</option>
-                <option value="desc">desc</option>
-              </select>
+              <div class="refgene-drop" id="detailRowTypeDrop" style="width:160px">
+                <div class="refgene-btn" id="detailRowTypeBtn" onclick="toggleDetailRowTypeDrop(event)">
+                  <span class="rg-label" id="detailRowTypeLabel">all</span>
+                  <span class="rg-arrow">▼</span>
+                </div>
+                <div class="refgene-panel" id="detailRowTypePanel"></div>
+              </div>
             </div>
           </div>
           <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -582,7 +580,7 @@ let showNTC        = false;
 let currentResultRefGene = '';
 let currentFilteredKd = null;
 let currentFilteredDetailRows = null;
-let detailViewState = {search:'',rowType:'all',sortCol:'',sortDir:'asc'};
+let detailViewState = {search:'',sortCol:'',sortDir:'asc'};
 
 /* ── Multi-plate state ── */
 let layoutFiles       = []; // [{file, aoa, hdrIdx, assignedPlate (1-based)}]
@@ -639,7 +637,7 @@ function renderFileChips(containerId, fileList, assignFnName, removeFnName){
   // Plate 1 through total file count + 1
   const totalFiles = layoutFiles.length + resultFiles.length;
   const plateOptions = Array.from({length: totalFiles + 1}, (_, i) => i + 1);
-  const showPlate = layoutFiles.length + resultFiles.length > 1;
+  const showPlate = fileList.length > 1 || layoutFiles.length + resultFiles.length > 1;
   // Count how many files per plate so we know which ones need a sub-index label
   const plateCount = {};
   fileList.forEach(f => { plateCount[f.assignedPlate] = (plateCount[f.assignedPlate]||0) + 1; });
@@ -965,6 +963,7 @@ function onNtcModeChange(){
   ntcMode = document.querySelector('input[name="ntcMode"]:checked')?.value || 'per-plate';
   const sel = document.getElementById('globalNtcPlateSelector');
   if(sel) sel.style.display = ntcMode === 'global' ? 'inline-flex' : 'none';
+  if(analysisResult) runAnalysis();
 }
 
 function populateGlobalNtcPlateSelect(){
@@ -1918,6 +1917,11 @@ document.addEventListener('click', function(e){
     document.getElementById('resultPlateBtn')?.classList.remove('open');
     document.getElementById('resultPlatePanel')?.classList.remove('open');
   }
+  const rtDrop = document.getElementById('detailRowTypeDrop');
+  if(rtDrop && !rtDrop.contains(e.target)){
+    document.getElementById('detailRowTypeBtn')?.classList.remove('open');
+    document.getElementById('detailRowTypePanel')?.classList.remove('open');
+  }
 });
 
 function getCurrentAnalysisView(){
@@ -2049,6 +2053,7 @@ function onResultPlateItemChange(){
 function onCfgChange(){
   const wrap = document.getElementById('completenessMatrixWrap');
   if(wrap && wrap.style.display !== 'none') renderCompletenessMatrix();
+  if(analysisResult) runAnalysis();
 }
 
 function toggleCompletenessMatrix(){
@@ -2139,6 +2144,7 @@ function renderCompletenessMatrix(){
 function toggleOmitItem(chk){
   chk.closest('.omit-item').classList.toggle('selected',chk.checked);
   updateOmitMeta();
+  if(analysisResult) runAnalysis();
 }
 
 function filterOmitList(){
@@ -2160,6 +2166,7 @@ function selectVisibleOmit(checked){
     chk.closest('.omit-item').classList.toggle('selected',checked);
   });
   updateOmitMeta();
+  if(analysisResult) runAnalysis();
 }
 
 function updateOmitMeta(){
@@ -2309,11 +2316,11 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
         if(refKey && !addedRefRows.has(siRNA)){
           detailRows.push({
             ...pl,
-            row_type:'reference_gene', housekeeping_gene:refGeneInput, treatment,
+            row_type:'ref_gene', treatment,
             bio_rep:siRNA, well:avgWells[siRNA]?.[refKey]||'N/A', raw_ct:rawCts[siRNA]?.[refKey]||'N/A',
-            primer:refKey, reference_gene:refKey,
-            ct_ref_mean:fmt(refCt), ct_target_mean:fmt(refCt),
-            dct:'0.000', ntc_mean_dct:'0.000', ddct:'0.000', rel_exp:'1.0000', kd_pct:'0.0'
+            primer:refKey, ref_gene:'',
+            ct_ref_mean:'', ct_target_mean:'',
+            dct:'', ntc_mean_dct:'', ddct:'', rel_exp:'', kd_pct:''
           });
           addedRefRows.add(siRNA);
         }
@@ -2326,9 +2333,9 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
         repBioReps.push(siRNA);
         detailRows.push({
           ...pl,
-          row_type:'target_gene', housekeeping_gene:refGeneInput, treatment,
+          row_type:'target_gene', treatment,
           bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
-          primer, reference_gene:refKey||refGeneInput,
+          primer, ref_gene:refKey||refGeneInput,
           ct_ref_mean:fmt(refCt), ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
           dct:dct.toFixed(3), ntc_mean_dct:ntcRef.toFixed(3),
           ddct:ddct.toFixed(3), rel_exp:relExp.toFixed(4), kd_pct:((1-relExp)*100).toFixed(1)
@@ -2357,12 +2364,14 @@ function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenes
         if(ntcRef===undefined) return;
         const ddct   = dct - ntcRef;
         const relExp = Math.pow(2,-ddct);
+        const ntcRefKey = Object.keys(avgCt[siRNA]||{}).find(p=>p.toLowerCase()===refGeneLower);
+        const ntcRefCt  = ntcRefKey ? avgCt[siRNA][ntcRefKey] : undefined;
         detailRows.push({
           ...pl,
-          row_type:'siNTC', housekeeping_gene:refGeneInput, treatment,
+          row_type:'ref_sample', treatment,
           bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
-          primer, reference_gene:'',
-          ct_ref_mean:'', ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
+          primer, ref_gene:ntcRefKey||refGeneInput,
+          ct_ref_mean:fmt(ntcRefCt), ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
           dct:dct.toFixed(3), ntc_mean_dct:ntcRef.toFixed(3),
           ddct:ddct.toFixed(3), rel_exp:relExp.toFixed(4), kd_pct:((1-relExp)*100).toFixed(1)
         });
@@ -2568,21 +2577,20 @@ function runAnalysis(){
           const refCt = refKey ? avgCt[siRNA]?.[refKey] : undefined;
           if(refKey && !addedRefRows.has(siRNA)){
             detailRows.push({
-              row_type:       'reference_gene',
-              housekeeping_gene: refGeneInput,
+              row_type:       'ref_gene',
               treatment,
               bio_rep:        siRNA,
               well:           avgWells[siRNA]?.[refKey] || 'N/A',
               raw_ct:         rawCts[siRNA]?.[refKey]   || 'N/A',
               primer:         refKey,
-              reference_gene: refKey,
-              ct_ref_mean:    fmt(refCt),
-              ct_target_mean: fmt(refCt),
-              dct:            '0.000',
-              ntc_mean_dct:   '0.000',
-              ddct:           '0.000',
-              rel_exp:        '1.0000',
-              kd_pct:         '0.0'
+              ref_gene: '',
+              ct_ref_mean:    '',
+              ct_target_mean: '',
+              dct:            '',
+              ntc_mean_dct:   '',
+              ddct:           '',
+              rel_exp:        '',
+              kd_pct:         ''
             });
             addedRefRows.add(siRNA);
           }
@@ -2595,13 +2603,12 @@ function runAnalysis(){
           repBioReps.push(siRNA);
           detailRows.push({
             row_type:       'target_gene',
-            housekeeping_gene: refGeneInput,
             treatment,
             bio_rep:        siRNA,
             well:           avgWells[siRNA]?.[primer] || 'N/A',
             raw_ct:         rawCts[siRNA]?.[primer]   || 'N/A',
             primer,
-            reference_gene: refKey || refGeneInput,
+            ref_gene: refKey || refGeneInput,
             ct_ref_mean:    fmt(refCt),
             ct_target_mean: fmt(avgCt[siRNA]?.[primer]),
             dct:            dct.toFixed(3),
@@ -2636,16 +2643,17 @@ function runAnalysis(){
           if(ntcRef===undefined) return;
           const ddct = dct - ntcRef;
           const relExp = Math.pow(2,-ddct);
+          const ntcRefKey2 = Object.keys(avgCt[siRNA]||{}).find(p=>p.toLowerCase()===refGeneLower);
+          const ntcRefCt2  = ntcRefKey2 ? avgCt[siRNA][ntcRefKey2] : undefined;
           detailRows.push({
-            row_type:       'siNTC',
-            housekeeping_gene: refGeneInput,
+            row_type:       'ref_sample',
             treatment,
             bio_rep:        siRNA,
             well:           avgWells[siRNA]?.[primer] || 'N/A',
             raw_ct:         rawCts[siRNA]?.[primer]   || 'N/A',
             primer,
-            reference_gene: '',
-            ct_ref_mean:    '',
+            ref_gene: ntcRefKey2||refGeneInput,
+            ct_ref_mean:    fmt(ntcRefCt2),
             ct_target_mean: fmt(avgCt[siRNA]?.[primer]),
             dct:            dct.toFixed(3),
             ntc_mean_dct:   ntcRef.toFixed(3),
@@ -2837,63 +2845,127 @@ function renderKDTable(kd){
 
 function renderDetailTable(rows){
   if(!rows.length){
-    document.getElementById('detailSortCol').innerHTML='';
-    document.getElementById('detailRowType').innerHTML='<option value="all">all</option>';
     document.getElementById('detailCount').textContent='0 / 0 rows';
     document.getElementById('detailTable').innerHTML='<tr><td>No data</td></tr>';
     return;
   }
   const cols=Object.keys(rows[0]);
-  const sortSel=document.getElementById('detailSortCol');
-  sortSel.innerHTML=cols.map(c=>`<option value="${c}">${c}</option>`).join('');
   if(!detailViewState.sortCol || !cols.includes(detailViewState.sortCol)){
     detailViewState.sortCol=cols.includes('primer')?'primer':cols.includes('treatment')?'treatment':cols[0];
   }
-  sortSel.value=detailViewState.sortCol;
 
-  const rowTypeSel=document.getElementById('detailRowType');
   const rowTypes=[...new Set(rows.map(r=>String(r.row_type||'')))].filter(Boolean).sort();
-  rowTypeSel.innerHTML='<option value="all">all</option>'+rowTypes.map(t=>`<option value="${t}">${t}</option>`).join('');
-  if(detailViewState.rowType!=='all' && !rowTypes.includes(detailViewState.rowType)){
-    detailViewState.rowType='all';
-  }
-  rowTypeSel.value=detailViewState.rowType;
+  _populateDetailRowTypePanel(rowTypes);
 
-  document.getElementById('detailSearch').value=detailViewState.search;
-  document.getElementById('detailSortDir').value=detailViewState.sortDir;
+  document.getElementById('detailSearch').value=detailViewState.search||'';
   refreshDetailTable();
 }
 
 function resetDetailView(){
-  detailViewState={search:'',rowType:'all',sortCol:'',sortDir:'asc'};
+  detailViewState={search:'',sortCol:'',sortDir:'asc'};
+  _resetDetailRowTypePanel();
   const rows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
   if(rows) renderDetailTable(rows);
 }
 
+function toggleDetailRowTypeDrop(e){
+  e && e.stopPropagation();
+  const btn=document.getElementById('detailRowTypeBtn');
+  const panel=document.getElementById('detailRowTypePanel');
+  if(!btn||!panel) return;
+  const opening=!panel.classList.contains('open');
+  btn.classList.toggle('open',opening);
+  panel.classList.toggle('open',opening);
+}
+const _DETAIL_RT_DEFAULTS = new Set(['target_gene','ref_sample']);
+function _capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function _populateDetailRowTypePanel(rowTypes){
+  const panel=document.getElementById('detailRowTypePanel');
+  if(!panel) return;
+  // first population: use defaults; subsequent: preserve existing selections
+  const isFirst = panel.innerHTML === '';
+  const prev = isFirst ? null : _getDetailRowTypes();
+  const defaultSel = isFirst ? _DETAIL_RT_DEFAULTS : null;
+  panel.innerHTML=
+    `<label><input type="checkbox" id="detailRowTypeAll" onchange="_onDetailRowTypeAllChange(this)"> All</label>`+
+    rowTypes.map(t=>{
+      const checked = defaultSel ? defaultSel.has(t) : (prev===null||prev.has(t));
+      return `<label><input type="checkbox" class="detail-rowtype-chk" value="${esc(t)}" ${checked?'checked':''} onchange="_onDetailRowTypeItemChange()"> ${_capFirst(esc(t))}</label>`;
+    }).join('');
+  _syncDetailRowTypeAllChk();
+  _updateDetailRowTypeLabel();
+}
+function _resetDetailRowTypePanel(){
+  const panel=document.getElementById('detailRowTypePanel');
+  if(!panel) return;
+  panel.querySelectorAll('input.detail-rowtype-chk').forEach(cb=>{
+    cb.checked=_DETAIL_RT_DEFAULTS.has(cb.value);
+  });
+  _syncDetailRowTypeAllChk();
+  _updateDetailRowTypeLabel();
+}
+function _getDetailRowTypes(){
+  const allChk=document.getElementById('detailRowTypeAll');
+  if(allChk&&allChk.checked) return null; // null = all
+  const checked=[...document.querySelectorAll('#detailRowTypePanel input.detail-rowtype-chk:checked')].map(cb=>cb.value);
+  return new Set(checked);
+}
+function _updateDetailRowTypeLabel(){
+  const lbl=document.getElementById('detailRowTypeLabel');
+  if(!lbl) return;
+  const sel=_getDetailRowTypes();
+  if(sel===null){ lbl.textContent='All'; lbl.classList.remove('placeholder'); }
+  else if(sel.size===0){ lbl.textContent='None'; lbl.classList.add('placeholder'); }
+  else if(sel.size===1){ lbl.textContent=_capFirst([...sel][0]); lbl.classList.remove('placeholder'); }
+  else { lbl.textContent=sel.size+' types'; lbl.classList.remove('placeholder'); }
+}
+function _syncDetailRowTypeAllChk(){
+  const allChk=document.getElementById('detailRowTypeAll');
+  if(!allChk) return;
+  const items=[...document.querySelectorAll('#detailRowTypePanel input.detail-rowtype-chk')];
+  allChk.checked=items.length>0&&items.every(cb=>cb.checked);
+}
+function _onDetailRowTypeAllChange(chk){
+  document.querySelectorAll('#detailRowTypePanel input.detail-rowtype-chk').forEach(cb=>cb.checked=chk.checked);
+  _updateDetailRowTypeLabel();
+  refreshDetailTable();
+}
+function _onDetailRowTypeItemChange(){
+  _syncDetailRowTypeAllChk();
+  _updateDetailRowTypeLabel();
+  refreshDetailTable();
+}
+function sortDetailByCol(col){
+  if(detailViewState.sortCol===col){
+    detailViewState.sortDir=detailViewState.sortDir==='asc'?'desc':'asc';
+  } else {
+    detailViewState.sortCol=col;
+    detailViewState.sortDir='asc';
+  }
+  refreshDetailTable();
+}
 function refreshDetailTable(){
   const rows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
   if(!rows||!rows.length)return;
   const allRows=rows;
   const cols=Object.keys(allRows[0]);
   const searchEl=document.getElementById('detailSearch');
-  const rowTypeEl=document.getElementById('detailRowType');
-  const sortColEl=document.getElementById('detailSortCol');
-  const sortDirEl=document.getElementById('detailSortDir');
-
   detailViewState.search=(searchEl?.value||'').trim();
-  detailViewState.rowType=rowTypeEl?.value||'all';
-  detailViewState.sortCol=sortColEl?.value||detailViewState.sortCol||cols[0];
-  detailViewState.sortDir=sortDirEl?.value||'asc';
+  if(!detailViewState.sortCol||!cols.includes(detailViewState.sortCol)){
+    detailViewState.sortCol=cols.includes('primer')?'primer':cols[0];
+  }
+  if(!detailViewState.sortDir) detailViewState.sortDir='asc';
+  const selectedRowTypes=_getDetailRowTypes();
 
   const kw=detailViewState.search.toLowerCase();
   let filtered=[...allRows].filter(r=>{
-    if(detailViewState.rowType!=='all' && String(r.row_type||'')!==detailViewState.rowType)return false;
+    if(selectedRowTypes!==null && !selectedRowTypes.has(String(r.row_type||'')))return false;
     if(!kw)return true;
     return cols.some(c=>String(r[c]??'').toLowerCase().includes(kw));
   });
 
-  const sc=detailViewState.sortCol;
-  const dir=detailViewState.sortDir==='desc'?-1:1;
+  const sc=detailViewState.sortCol, sd=detailViewState.sortDir;
+  const dir=sd==='desc'?-1:1;
   filtered.sort((a,b)=>{
     const av=String(a[sc]??'');
     const bv=String(b[sc]??'');
@@ -2902,9 +2974,16 @@ function refreshDetailTable(){
     if(bothNum)return (an-bn)*dir;
     return av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'})*dir;
   });
-
-  let html='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
-  filtered.forEach(r=>{ html+='<tr>'+cols.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>'; });
+  // Display columns: fixed order + rename treatment→siRNA; remaining data cols hidden in display but kept for CSV
+  const DISPLAY_COLS = ['row_type','plate','treatment','bio_rep','well','raw_ct','primer','ct_target_mean','ref_gene','ct_ref_mean','dct','ntc_mean_dct','ddct','rel_exp','kd_pct']
+    .filter(c=>cols.includes(c));
+  const LABELS = {treatment:'siRNA'};
+  let html='<thead><tr>'+DISPLAY_COLS.map(c=>{
+    const cls=c===sc?(sd==='asc'?'sort-asc':'sort-desc'):'';
+    const label=LABELS[c]||c;
+    return `<th class="${cls}" onclick="sortDetailByCol('${c.replace(/'/g,"\\'")}')">${label}</th>`;
+  }).join('')+'</tr></thead><tbody>';
+  filtered.forEach(r=>{ html+='<tr>'+DISPLAY_COLS.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>'; });
   document.getElementById('detailTable').innerHTML=html+'</tbody>';
   document.getElementById('detailCount').textContent=`${filtered.length} / ${allRows.length} rows`;
 }
@@ -2928,17 +3007,20 @@ function renderSummaryCards(kd){
    CHARTS
 ═══════════════════════════════════════════════════════ */
 
+/* X-axis label: show siRNA only when its name already implies the primer, else show siRNA<br>(primer) */
+function _chartLabel(siRNA, primer){
+  return siRNA.toLowerCase().includes(primer.toLowerCase()) ? siRNA : `${siRNA}<br>(${primer})`;
+}
+
 /* Build one set of three Plotly charts (Bar/Dot/Rel) into the given div IDs */
 function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, ntcData, refGene, compact){
   const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
   const nGroups = allSorted.length;
-  const PX_PER_GROUP = 60;
-  const chartW = Math.max(600, nGroups * PX_PER_GROUP);
-  const marginB = compact ? 120 : 200;
-  const chartH = compact
-    ? Math.max(380, Math.min(700, 320 + nGroups * 6))
-    : Math.max(500, Math.min(900, 440 + nGroups * 6));
-  const labels = allSorted.map(r=>`${r.siRNA}<br>(${r.primer})`);
+  const PX_PER_GROUP = 75;
+  const chartW = Math.max(750, nGroups * PX_PER_GROUP);
+  const marginB = 100;
+  const chartH = marginB + Math.max(350, Math.min(800, 225 + nGroups * 8));
+  const labels = allSorted.map(r=>_chartLabel(r.siRNA, r.primer));
 
   const kdVals   = allSorted.map(r=>+r.kd.toFixed(2));
   const seKDPct  = allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
@@ -2969,7 +3051,7 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
 
   const dotT=[];
   allSorted.forEach((r,i)=>{
-    const lbl=`${r.siRNA}<br>(${r.primer})`;
+    const lbl=_chartLabel(r.siRNA, r.primer);
     const wells = r.repWells || r.reps.map(()=>'');
     const bioReps = r.repBioReps || r.reps.map(()=>'');
     dotT.push({showlegend:false,x:r.reps.map(()=>lbl),
@@ -2984,7 +3066,7 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
       marker:{size:13,color:colors[i],symbol:'diamond'},
       hovertemplate:'<b>%{x}</b><br>Mean KD: %{y:.2f}%<extra></extra>'});
   });
-  const dotAnnotations=allSorted.map((r,i)=>({x:`${r.siRNA}<br>(${r.primer})`,y:r.kd,xref:'x',yref:'y',
+  const dotAnnotations=allSorted.map((r,i)=>({x:_chartLabel(r.siRNA,r.primer),y:r.kd,xref:'x',yref:'y',
     text:r.kd.toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
   Plotly.newPlot(plotDotId,dotT,{...CL,
     title:titleStyle('Individual Replicates — KD% (Mean ± SE)'),
@@ -3326,9 +3408,12 @@ function downloadKDcsv(){
 function downloadDetailCsv(){
   const detailRows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
   if(!detailRows||!detailRows.length) return;
-  const cols=Object.keys(detailRows[0]);
+  const allCols = Object.keys(detailRows[0]);
+  const ORDERED = ['row_type','plate','treatment','bio_rep','well','raw_ct','primer','ct_target_mean','ref_gene','ct_ref_mean','dct','ntc_mean_dct','ddct','rel_exp','kd_pct'];
+  const cols = ORDERED.filter(c=>allCols.includes(c));
+  const LABELS = {treatment:'siRNA'};
   const q=v=>{const s=String(v??'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s;};
-  let csv=cols.map(q).join(',')+'\n';
+  let csv=cols.map(c=>q(LABELS[c]||c)).join(',')+'\n';
   detailRows.forEach(r=>{ csv+=cols.map(c=>q(r[c])).join(',')+'\n'; });
   dl(csv,`siRNA_KD_detail_${(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.csv`);
 }
