@@ -97,10 +97,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .fig-plate-label{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:6px;padding:4px 10px;background:#f1f5f9;border-radius:6px;display:inline-block;}
     .hidden{display:none}
     .tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
-    #detailTable th{cursor:pointer;user-select:none;white-space:nowrap;}
-    #detailTable th:hover{background:#e8edf5;}
-    #detailTable th.sort-asc::after{content:' ▲';font-size:.7em;color:#3b82f6;}
-    #detailTable th.sort-desc::after{content:' ▼';font-size:.7em;color:#3b82f6;}
+    #detailTable th,#kdTable th,.sortable-tbl th{cursor:pointer;user-select:none;white-space:nowrap;}
+    #detailTable th:hover,#kdTable th:hover,.sortable-tbl th:hover{background:#e8edf5;}
+    #detailTable th.sort-asc::after,#kdTable th.sort-asc::after,.sortable-tbl th.sort-asc::after{content:' ▲';font-size:.7em;color:#3b82f6;}
+    #detailTable th.sort-desc::after,#kdTable th.sort-desc::after,.sortable-tbl th.sort-desc::after{content:' ▼';font-size:.7em;color:#3b82f6;}
      table{width:100%;border-collapse:collapse;font-size:.8rem}
      thead tr{background:#edf1f7;position:sticky;top:0;z-index:1}
      th{padding:8px 10px;border:1px solid #d0d8e8;text-align:center;
@@ -352,7 +352,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
     <div id="uploadMergeStatus" class="hidden" style="margin-top:12px"></div>
     <div id="colMismatchWarn" style="display:none;margin-top:8px"></div>
-    <div id="multiPlateNotice" class="multi-plate-notice" style="display:none;margin-top:8px"></div>
 
   </div>
 
@@ -391,21 +390,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         </div>
       </div>
       <!-- ── Omit Well ── -->
-      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-
-      <!-- ── Global NTC mode (multi-plate only) ── -->
-      <div id="globalNtcWrap" class="ntc-mode-section" style="display:none">
-        <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">NTC Normalization Mode</label>
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0">
-          <label><input type="radio" name="ntcMode" value="per-plate" checked onchange="onNtcModeChange()"> Per-plate NTC <span style="color:#888;font-size:.78rem">(default — each plate uses its own siNTC)</span></label>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px">
-          <label><input type="radio" name="ntcMode" value="global" onchange="onNtcModeChange()"> Global NTC — all plates use reference plate's siNTC:</label>
-          <span id="globalNtcPlateSelector" style="display:none">
-            <select id="globalNtcPlateSelect" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.8rem" onchange="globalNtcPlateIdx=+this.value;if(analysisResult)runAnalysis()"></select>
-          </span>
-        </div>
-      </div>
+      <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:12px">
 
         <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">Omit Well</label>
         <div class="omit-toolbar">
@@ -416,21 +401,41 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         </div>
         <div class="ntc-grid" id="omitGrid"></div>
       </div>
-      <!-- ── Completeness Matrix (collapsible) ── -->
-      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleCompletenessMatrix()">
-          <span style="font-size:.85rem;font-weight:700;color:#555">Data Completeness Matrix</span>
-          <button id="cmToggleBtn" class="btn-secondary" type="button" style="padding:3px 12px;font-size:.76rem">▼ Show</button>
-        </div>
-        <div id="completenessMatrixWrap" style="display:none;margin-top:10px">
-          <p style="font-size:.76rem;color:#6b7a8d;margin-bottom:6px">Each cell = bio-reps with all 4 data points present (siRNA+Target, siRNA+HK, siNTC+Target, siNTC+HK) / total bio-reps.</p>
-          <div style="overflow-x:auto"><div id="completenessMatrixBody" style="display:inline-block"></div></div>
-          <div class="cm-legend">
-            <div class="cm-leg-item"><div class="cm-swatch cm-full"></div> All reps complete</div>
-            <div class="cm-leg-item"><div class="cm-swatch cm-partial"></div> Partial</div>
-            <div class="cm-leg-item"><div class="cm-swatch cm-none"></div> Missing</div>
-            <div class="cm-leg-item"><div class="cm-swatch cm-na"></div> No data</div>
+
+      <!-- ── Advanced Settings (collapsible) ── -->
+      <div style="margin-top:16px">
+        <button id="advToggleBtn" onclick="toggleAdvancedSettings()" style="background:none;border:none;padding:0;font-size:.8rem;font-weight:400;color:#6b7a8d;cursor:pointer">▼ Advanced settings</button>
+        <div id="advancedSettingsWrap" class="hidden" style="margin-top:10px">
+
+          <!-- NTC Normalization Mode (multi-plate only) -->
+          <div id="globalNtcWrap" class="ntc-mode-section" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+            <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">NTC Normalization Mode</label>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0">
+              <label><input type="radio" name="ntcMode" value="per-plate" checked onchange="onNtcModeChange()"> Per-plate NTC <span style="color:#888;font-size:.78rem">(default — each plate uses its own siNTC)</span></label>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px">
+              <label><input type="radio" name="ntcMode" value="global" onchange="onNtcModeChange()"> Global NTC — all plates use reference plate's siNTC:</label>
+              <span id="globalNtcPlateSelector" style="display:none">
+                <select id="globalNtcPlateSelect" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.8rem" onchange="globalNtcPlateIdx=+this.value;if(analysisResult)runAnalysis()"></select>
+              </span>
+            </div>
           </div>
+
+          <!-- Data Completeness Matrix -->
+          <div>
+            <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">Data Completeness Matrix</label>
+            <p style="font-size:.76rem;color:#6b7a8d;margin-bottom:6px">Each cell = bio-reps with all 4 data points present (siRNA+Target, siRNA+HK, siNTC+Target, siNTC+HK) / total bio-reps.</p>
+            <div id="completenessMatrixWrap" style="margin-top:6px">
+              <div style="overflow-x:auto"><div id="completenessMatrixBody" style="display:inline-block"></div></div>
+              <div class="cm-legend">
+                <div class="cm-leg-item"><div class="cm-swatch cm-full"></div> All reps complete</div>
+                <div class="cm-leg-item"><div class="cm-swatch cm-partial"></div> Partial</div>
+                <div class="cm-leg-item"><div class="cm-swatch cm-none"></div> Missing</div>
+                <div class="cm-leg-item"><div class="cm-swatch cm-na"></div> No data</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -811,9 +816,9 @@ function removeResultFile(idx){
 }
 
 function updateMultiPlateNotice(){
-  const el = document.getElementById('multiPlateNotice');
-  if(!el) return;
-  if(!isMultiPlate){ el.style.display = 'none'; return; }
+  const ms = document.getElementById('uploadMergeStatus');
+  ms?.querySelector('.plate-notice')?.remove();
+  if(!isMultiPlate) return;
   const distinctPlates = getDistinctPlateNumbers();
   const total     = distinctPlates.length;
   const universalMeta = document.getElementById('universalMetaChk')?.checked ?? false;
@@ -826,10 +831,14 @@ function updateMultiPlateNotice(){
     const rfReady = rfs.some(f => f.aoa && f.hdrIdx >= 0);
     if(lfReady && rfReady) readyCount++;
   }
-  el.style.display = 'block';
-  el.innerHTML = readyCount === total
+  // Only show the "plates loaded" notice when uploadMergeStatus is hidden (before any merge)
+  // After merge, per-plate lines already show ✅ for each plate
+  if(!ms || !ms.classList.contains('hidden')) return;
+  ms.className = 'alert alert-success';
+  ms.innerHTML = readyCount === total
     ? `✅ All ${total} plates loaded — click <strong>Confirm &amp; Continue</strong> above to proceed`
     : `${readyCount} of ${total} plates have both files loaded`;
+  ms.classList.remove('hidden');
 }
 
 /* Process multiple layout files — APPEND to existing list */
@@ -1403,26 +1412,85 @@ function buildScanPreview(hdrIdx, hdrCells){
   document.getElementById('scanPreview').innerHTML = html;
 }
 
+/* ── Generic table sort state & helpers ── */
+const _tblSort = {}; // {tableId: {col, dir}}
+function _sortTh(tableId, col){
+  const s = _tblSort[tableId] || {col:'', dir:'asc'};
+  _tblSort[tableId] = {col, dir: s.col===col ? (s.dir==='asc'?'desc':'asc') : 'asc'};
+}
+function _sortRows(rows, col, dir){
+  return [...rows].sort((a,b)=>{
+    const av=String(a[col]??''), bv=String(b[col]??'');
+    const an=Number(av), bn=Number(bv);
+    const num=Number.isFinite(an)&&Number.isFinite(bn)&&av!==''&&bv!=='';
+    const cmp=num?(an-bn):av.localeCompare(bv,undefined,{numeric:true,sensitivity:'base'});
+    return dir==='desc'?-cmp:cmp;
+  });
+}
+function _thHtml(tableId, cols, labels={}){
+  const s = _tblSort[tableId] || {col:'', dir:'asc'};
+  return cols.map(c=>{
+    const cls = c===s.col ? (s.dir==='asc'?'sort-asc':'sort-desc') : '';
+    const lbl = labels[c]||c;
+    return `<th class="${cls}" onclick="_sortTh('${tableId}','${c.replace(/'/g,"\\'")}');_rerenderTbl('${tableId}')">${esc(lbl)}</th>`;
+  }).join('');
+}
+
+const _fullPreviewData = {}; // cache for re-render on sort
 function buildFullPreview(divId, aoa, hdrIdx, cols, title, wellColIdx){
-  const dataRows = aoa.slice(hdrIdx+1).filter(r => {
-    if(!r.some(c=>String(c).trim()!=='')) return false;  // fully empty
-    if(wellColIdx !== undefined) return isValidWellCell(r[wellColIdx]); // reject footer
+  const rawRows = aoa.slice(hdrIdx+1).filter(r => {
+    if(!r.some(c=>String(c).trim()!=='')) return false;
+    if(wellColIdx !== undefined) return isValidWellCell(r[wellColIdx]);
     return true;
   });
+  // Convert to objects keyed by col name for generic sort
+  const dataObjs = rawRows.map(row => Object.fromEntries(cols.map((c,i)=>[c, row[i]!==undefined?String(row[i]):''])));
+  _fullPreviewData[divId] = {dataObjs, cols, title};
+  _renderFullPreview(divId);
+}
+function _renderFullPreview(divId){
+  const {dataObjs, cols, title} = _fullPreviewData[divId]||{};
+  if(!dataObjs) return;
+  const s = _tblSort[divId] || {col:'', dir:'asc'};
+  const sorted = s.col ? _sortRows(dataObjs, s.col, s.dir) : dataObjs;
   let html = `<p style="font-size:.78rem;color:#777;margin:6px 0">
-    <strong>${esc(title)}</strong> — ${dataRows.length} data rows</p>`;
-  html += '<div class="tbl-wrap"><table><thead><tr>'
-        + cols.map(c=>`<th>${esc(c)}</th>`).join('') + '</tr></thead><tbody>';
-  dataRows.forEach(row => {
-    html += '<tr>' + cols.map((_,i)=>`<td>${esc(row[i]!==undefined?String(row[i]):'')}</td>`).join('') + '</tr>';
+    <strong>${esc(title)}</strong> — ${dataObjs.length} data rows</p>`;
+  html += `<div class="tbl-wrap"><table class="sortable-tbl"><thead><tr>${_thHtml(divId,cols)}</tr></thead><tbody>`;
+  sorted.forEach(row => {
+    html += '<tr>' + cols.map(c=>`<td>${esc(row[c]??'')}</td>`).join('') + '</tr>';
   });
   html += '</tbody></table></div>';
   document.getElementById(divId).innerHTML = html;
+}
+function _rerenderTbl(id){
+  if(_fullPreviewData[id]){ _renderFullPreview(id); return; }
+  if(id==='mergedPreview'){ _renderMergedPreview(); return; }
+  if(id==='kdTable'){ _rerenderKDTable(); return; }
 }
 
 /* ═══════════════════════════════════════════════════════
    CONFIRM MAPPING → MERGE
 ═══════════════════════════════════════════════════════ */
+let _plateStatusLines = [];
+function _buildPlateStatusLine(rows, mode, plLabel){
+  const total  = rows.length;
+  const active = rows.filter(r => r.active && !isNaN(r.ct)).length;
+  const skip   = rows.filter(r => !r.active).length;
+  const noCt   = rows.filter(r => r.active && isNaN(r.ct)).length;
+  _plateStatusLines.push(
+    `✅ Merge complete (${mode}) — ${plLabel} · ${total} wells · `+
+    `<strong style="color:#34a853">${active} active</strong> · `+
+    `<span style="color:#888">${skip} skipped (no siRNA/primer)</span> · `+
+    `<span style="color:#ffa000">${noCt} undetermined CT</span>`
+  );
+}
+function _flushPlateStatus(){
+  const el = document.getElementById('uploadMergeStatus');
+  if(!el) return;
+  el.className = 'alert alert-success';
+  el.innerHTML = _plateStatusLines.join('<br>');
+  el.classList.remove('hidden');
+}
 function confirmMapping(){
   const withMeta  = document.getElementById('withMetaChk')?.checked;
 
@@ -1544,13 +1612,11 @@ function confirmMapping(){
   const mode = withMeta ? 'result-anchored' : 'Metadata-anchored';
   /* Merged preview */
   buildMergedPreview(totalLayout, activeCount, skippedCount, noCtCount, mode);
-  showStatus('uploadMergeStatus','success',
-    `✅ Merge complete (${mode}) — `+
-    `${totalLayout} wells · `+
-    `<strong style="color:#34a853">${activeCount} active</strong> · `+
-    `<span style="color:#888">${skippedCount} skipped (no siRNA/primer)</span> · `+
-    `<span style="color:#ffa000">${noCtCount} undetermined CT</span>`);
-  document.getElementById('uploadMergeStatus').classList.remove('hidden');
+  // Status will be built per-plate after multi-plate loop; show Plate 1 line now
+  _plateStatusLines = [];
+  _buildPlateStatusLine(mergedRows, mode, 'Plate 1');
+  _flushPlateStatus();
+  updateMultiPlateNotice();
 
   /* ── Multi-plate: save mapping config and process additional plates ── */
   if(isMultiPlate){
@@ -1631,6 +1697,18 @@ function confirmMapping(){
     multiPlateMergedRows = [mergedRows];
   }
 
+  // Build per-plate status lines for plates 2+
+  if(isMultiPlate){
+    const distinctPlates = getDistinctPlateNumbers();
+    multiPlateMergedRows.forEach((rows, pi) => {
+      if(pi === 0) return; // Plate 1 already added
+      const plLabel = `Plate ${distinctPlates[pi] ?? (pi+1)}`;
+      _buildPlateStatusLine(rows, mode, plLabel);
+    });
+    _flushPlateStatus();
+    updateMultiPlateNotice();
+  }
+
   showConfig();
   setStep(3);
 }
@@ -1687,35 +1765,41 @@ function checkColumnConsistency(cfg){
   return warns;
 }
 
+let _mergedPreviewMeta = {};
 function buildMergedPreview(total, active, skipped, noCt, mode){
+  _mergedPreviewMeta = {total, active, skipped, noCt, mode};
+  _renderMergedPreview();
+}
+function _renderMergedPreview(){
+  const {total, active, skipped, noCt, mode} = _mergedPreviewMeta;
   const div = document.getElementById('pMerged');
+  if(!div || total===undefined) return;
   const modeLabel = mode === 'result-anchored' ? 'result-anchored (With metadata)' : 'Metadata-anchored';
+  const TID = 'mergedPreview';
+  const COLS = ['well','siRNA','primer','ct','status'];
+  const s = _tblSort[TID] || {col:'', dir:'asc'};
+  const rows = mergedRows.map(r => ({
+    well: r.well,
+    siRNA: r.siRNA||'—',
+    primer: r.primer||'—',
+    ct: r.active&&!isNaN(r.ct) ? r.ct.toFixed(3) : (r.active?'Undet':'—'),
+    status: !r.active ? '— not assigned' : isNaN(r.ct) ? 'Undetermined' : '✓',
+    _active: r.active, _hasct: !isNaN(r.ct)
+  }));
+  const sorted = s.col ? _sortRows(rows, s.col, s.dir) : rows;
   let html = `<p style="font-size:.78rem;color:#777;margin:6px 0">
-    <strong>Merged (${modeLabel})</strong> — 
-    ${total} layout wells · 
-    <span style="color:#34a853;font-weight:700">${active} active</span> · 
-    <span style="color:#888">${skipped} skipped</span> · 
+    <strong>Merged (${modeLabel})</strong> —
+    ${total} layout wells ·
+    <span style="color:#34a853;font-weight:700">${active} active</span> ·
+    <span style="color:#888">${skipped} skipped</span> ·
     <span style="color:#ffa000">${noCt} undetermined CT</span></p>`;
-  html += '<div class="tbl-wrap"><table><thead><tr>'
-        + '<th>Well</th><th>siRNA</th><th>Primer</th><th>CT</th><th>Status</th>'
-        + '</tr></thead><tbody>';
-  mergedRows.forEach(r => {
-    let status, rowStyle='';
-    if(!r.active){
-      status   = `<td class="skipped">— not assigned</td>`;
-      rowStyle = 'color:#bbb';
-    } else if(isNaN(r.ct)){
-      status = `<td style="color:#ffa000">Undetermined</td>`;
-    } else {
-      status = `<td style="color:#34a853">✓</td>`;
-    }
+  html += `<div class="tbl-wrap"><table class="sortable-tbl"><thead><tr>${_thHtml(TID,COLS)}</tr></thead><tbody>`;
+  sorted.forEach(r => {
+    const rowStyle = !r._active ? 'color:#bbb' : '';
+    const stColor = !r._active ? '' : r._hasct ? 'color:#34a853' : 'color:#ffa000';
     html += `<tr style="${rowStyle}">
-      <td>${r.well}</td>
-      <td>${r.siRNA||'—'}</td>
-      <td>${r.primer||'—'}</td>
-      <td>${r.active&&!isNaN(r.ct) ? r.ct.toFixed(3) : (r.active?'Undet':'—')}</td>
-      ${status}
-    </tr>`;
+      <td>${r.well}</td><td>${r.siRNA}</td><td>${r.primer}</td><td>${r.ct}</td>
+      <td style="${stColor}">${r.status}</td></tr>`;
   });
   div.innerHTML = html + '</tbody></table></div>';
 }
@@ -2051,19 +2135,21 @@ function onResultPlateItemChange(){
 }
 
 function onCfgChange(){
-  const wrap = document.getElementById('completenessMatrixWrap');
-  if(wrap && wrap.style.display !== 'none') renderCompletenessMatrix();
+  const adv = document.getElementById('advancedSettingsWrap');
+  if(adv && !adv.classList.contains('hidden')) renderCompletenessMatrix();
   if(analysisResult) runAnalysis();
 }
 
-function toggleCompletenessMatrix(){
-  const wrap = document.getElementById('completenessMatrixWrap');
-  const btn  = document.getElementById('cmToggleBtn');
-  const show = wrap.style.display === 'none';
-  wrap.style.display = show ? '' : 'none';
-  btn.textContent = show ? '▲ Hide' : '▼ Show';
-  if(show) renderCompletenessMatrix();
+function toggleAdvancedSettings(){
+  const wrap = document.getElementById('advancedSettingsWrap');
+  const btn  = document.getElementById('advToggleBtn');
+  const willShow = wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', !willShow);
+  btn.textContent = willShow ? '▲ Advanced settings' : '▼ Advanced settings';
+  if(willShow) renderCompletenessMatrix();
 }
+
+function toggleCompletenessMatrix(){ renderCompletenessMatrix(); }
 
 function renderCompletenessMatrix(){
   const refGenes  = getSelectedReferenceGenes();
@@ -2144,7 +2230,6 @@ function renderCompletenessMatrix(){
 function toggleOmitItem(chk){
   chk.closest('.omit-item').classList.toggle('selected',chk.checked);
   updateOmitMeta();
-  if(analysisResult) runAnalysis();
 }
 
 function filterOmitList(){
@@ -2166,7 +2251,6 @@ function selectVisibleOmit(checked){
     chk.closest('.omit-item').classList.toggle('selected',checked);
   });
   updateOmitMeta();
-  if(analysisResult) runAnalysis();
 }
 
 function updateOmitMeta(){
@@ -2795,14 +2879,23 @@ function mergeMultiPlateResultsPerPlate(allPlateResults, refGenesInput){
 /* ═══════════════════════════════════════════════════════
    RENDER TABLES
 ═══════════════════════════════════════════════════════ */
+let _kdTableData = [];
+function _rerenderKDTable(){ renderKDTable(_kdTableData); }
 function renderKDTable(kd){
-  const sorted=[...kd].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
-  const hasPlate = sorted.some(r => r.plate);
-  const plateHeader = hasPlate ? '<th>Plate</th>' : '';
-  let html=`<thead><tr>
-    ${plateHeader}<th>siRNA</th><th>Target Primer</th><th>Expression (% of NTC)</th><th>SE (%)</th>
-    <th>KD Efficiency</th><th>KD ± SE (%)</th><th>N bio-reps</th><th>Grade</th>
-  </tr></thead><tbody>`;
+  _kdTableData = kd;
+  const TID = 'kdTable';
+  const s = _tblSort[TID] || {col:'', dir:'asc'};
+  const hasPlate = kd.some(r => r.plate);
+  // Enrich with computed sort keys
+  const enriched = kd.map(r => {
+    let grade; if(r.kd<0) grade='Overexpression'; else if(r.kd>=70) grade='High'; else if(r.kd>=40) grade='Medium'; else grade='Low';
+    return {...r, exprPct:r.meanRE*100, exprSePct:isNaN(r.seRE)?NaN:r.seRE*100, kdSe:r.kdSe, grade};
+  });
+  const defaultSorted = [...enriched].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
+  const sorted = s.col ? _sortRows(defaultSorted, s.col, s.dir) : defaultSorted;
+  const COLS = [...(hasPlate?['plate']:[]), 'siRNA','primer','exprPct','exprSePct','kd','kdSe','n','grade'];
+  const LABELS = {siRNA:'siRNA',primer:'Target Primer',exprPct:'Expression (% of NTC)',exprSePct:'SE (%)',kd:'KD Efficiency',kdSe:'KD ± SE (%)',n:'N bio-reps',grade:'Grade',plate:'Plate'};
+  let html=`<thead><tr>${_thHtml(TID, COLS, LABELS)}</tr></thead><tbody>`;
   sorted.forEach(r => {
     let grade,cls;
     if(r.kd<0){grade='Overexpression';cls='kd-over';}
