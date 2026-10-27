@@ -6,7 +6,7 @@
   <title>siRNA Knockdown Efficiency Analyzer by ILYH</title>
 <script>
 /**
-* plotly.js (basic - minified) v2.35.2
+  * plotly.js (basic - minified) v2.35.2
 * Copyright 2012-2024, Plotly, Inc.
 * All rights reserved.
 * Licensed under the MIT license
@@ -56,7 +56,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       .card h2{font-size:.95rem;color:var(--primary);margin-bottom:12px;
        border-left:3px solid var(--primary);padding-left:9px}
     .upload-grid,.upload-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-    @media(max-width:700px){.upload-grid,.upload-map-grid{grid-template-columns:1fr}}
+    @media(max-width:700px){
+      .upload-grid,.upload-map-grid{grid-template-columns:minmax(0,1fr)}
+      .card{width:100%;max-width:100%;min-width:0}
+      .upload-map-grid>*,.mapper-grid>*{min-width:0}
+      #layoutMapperGrid,#resultMapperGrid,#resultMetaGrid,#card3 .mapper-grid{grid-template-columns:minmax(0,1fr)!important}
+    }
     .upload-zone{border:1px dashed #b7c6dd;border-radius:var(--r);padding:24px 14px;
            text-align:center;cursor:pointer;transition:all .2s;background:#f7f9fc;
                  position:relative;min-height:130px;display:flex;flex-direction:column;
@@ -91,12 +96,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .tab-btn.active{color:var(--primary);background:var(--primary-lt);border-color:#c8d7f0;font-weight:700}
     .tab-btn:hover:not(.active){color:var(--primary-dk);background:#f7f9fc}
     .tab-panel{display:none}.tab-panel.active{display:block}
-    .fig-wrap{width:100%;min-height:500px;overflow-x:auto;display:flex;justify-content:flex-start;}
+    .fig-wrap{width:100%;max-width:100%;min-width:0;min-height:500px;overflow-x:auto;overflow-y:hidden;display:flex;justify-content:flex-start;box-sizing:border-box}
     .fig-plate-section .fig-wrap{min-height:0;}
-    .fig-plate-section{margin-bottom:6px;}
+    .fig-plate-section{margin-bottom:6px;max-width:100%;min-width:0}
+    #card4{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
+    #card4 #resGroup2,#card4 #figRelContainer,#card4 #figBarContainer,#card4 #figDotContainer,#card4 .fig-plate-section,#card4 .fig-wrap{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+    #card4 .fig-wrap>div{flex:0 0 auto}
     .fig-plate-label{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:6px;padding:4px 10px;background:#f1f5f9;border-radius:6px;display:inline-block;}
+    .chart-facet-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;background:#f7f9fc;border:1px solid var(--border);border-radius:var(--r)}
+    .chart-facet-field{display:flex;flex-direction:column;gap:4px}
+    .chart-facet-field label{font-size:.76rem;font-weight:700;color:#425466}
+    .chart-facet-field select,.chart-facet-field input{min-height:34px;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:.82rem}
+    .chart-facet-field input{width:min(260px,70vw)}
+    .chart-facet-hint{font-size:.76rem;color:var(--muted);padding-bottom:8px}
+      .quality-warning{margin-top:8px}
     .hidden{display:none}
     .tbl-wrap{overflow-x:auto;max-height:500px;overflow-y:auto}
+    .detail-table-wrap.detail-table-expanded{max-height:calc(100vh - 210px)}
     #detailTable th,#kdTable th,.sortable-tbl th{cursor:pointer;user-select:none;white-space:nowrap;}
     #detailTable th:hover,#kdTable th:hover,.sortable-tbl th:hover{background:#e8edf5;}
     #detailTable th.sort-asc::after,#kdTable th.sort-asc::after,.sortable-tbl th.sort-asc::after{content:' ▲';font-size:.7em;color:#3b82f6;}
@@ -224,12 +240,31 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .ntc-mode-section{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
     .ntc-mode-section label{font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-right:16px}
     .multi-plate-notice{font-size:.8rem;padding:6px 10px;background:#eff3fa;border:1px solid #c8d7f0;border-radius:6px;margin-top:8px;color:#334155}
+
+    /* ── Multi-NTC & Sample Mapping ── */
+    .multi-ntc-wrap{margin-top:14px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px 14px;}
+    .multi-ntc-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+    .multi-ntc-header h4{margin:0;font-size:.84rem;color:var(--primary);font-weight:700;}
+    .ntc-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:10px;}
+    .ntc-col{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px;display:flex;flex-direction:column;min-height:120px;transition:border-color .15s,box-shadow .15s;}
+    .ntc-col-hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:6px;border-bottom:1px solid #edf2f7;margin-bottom:8px;}
+    .ntc-col-title{font-size:.82rem;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:6px;}
+    .ntc-col-count{font-size:.72rem;background:#e2e8f0;color:#475569;border-radius:10px;padding:1px 6px;font-weight:600;}
+    .ntc-col-drop{flex:1;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;min-height:50px;padding:4px;border-radius:5px;transition:background-color .15s,outline .15s;}
+    .ntc-col-drop.drag-over{background:#e0f2fe;outline:2px dashed #0284c7;}
+    .sample-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:5px;font-size:.76rem;color:#1e293b;cursor:grab;user-select:none;transition:transform .1s,box-shadow .1s,background-color .1s;}
+    .sample-chip:hover{background:#e2e8f0;border-color:#94a3b8;}
+    .sample-chip:active{cursor:grabbing;}
+    .sample-chip.dragging{opacity:.4;transform:scale(.95);}
+    .chip-ntc-badge{font-size:.68rem;padding:1px 5px;border-radius:4px;background:#e0e7ff;color:#3730a3;font-weight:600;}
+    .ntc-chk-list{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:#fff;padding:8px 10px;border-radius:6px;border:1px solid var(--border);}
+    .ntc-chk-list label{font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:5px;cursor:pointer;color:#334155;}
   </style>
 </head>
 <body>
 
 <header>
-  <h1>siRNA Knockdown Efficiency Analyzer v1.4</h1>
+  <h1>siRNA Knockdown Efficiency Analyzer v1.5</h1>
   <p>Layout + Raw Data → Merge → 2⁻ΔΔCt → Knockdown Efficiency</p>
   <p class="author">By ILYH</p>
 </header>
@@ -245,14 +280,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </ul>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <span style="font-size:.8rem;color:#6b7a8d;font-weight:600">Download templates:</span>
-      <button class="btn-secondary" onclick="downloadLayoutTemplate()">Metadata List Template (.csv)</button>
       <button class="btn-secondary" onclick="downloadLayoutMapTemplate()">Metadata Map Template (.csv)</button>
       <button class="btn-secondary" onclick="downloadResultTemplate()">Result Template (.xlsx)</button>
       <button id="loadTemplateBtn" class="btn-secondary" onclick="loadTemplateData()">Load Template Data</button>
     </div>
   </div>
 
-  <!-- ═══ CARD 1 · Upload Files ═══ -->
   <div class="card" id="card1">
     <h2>Upload Files</h2>
 
@@ -361,7 +394,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     <div class="alert alert-info" id="cfgAutoMsg" style="display:none"></div>
     <div class="col-mapper" style="margin-top:0">
       <!-- ── Reference Gene + siNTC + Sample filter ── -->
-      <div class="mapper-grid" style="grid-template-columns:200px 200px 200px;max-width:680px;gap:16px">
+      <div class="mapper-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));max-width:none;gap:12px">
         <div class="mapper-item">
           <label style="font-size:.85rem;font-weight:700;color:#555;">Reference (Housekeeping)</label>
           <div class="refgene-drop" id="cfgRefGeneDrop">
@@ -374,8 +407,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <span id="cfgRefErr" style="font-size:.78rem;color:var(--err,#a11c1c);display:none"></span>
         </div>
         <div class="mapper-item">
-          <label for="ntcSelect" style="font-size:.85rem;font-weight:700;color:#555;">siNTC <span style="font-weight:400;color:#888">— baseline for ΔΔCt</span></label>
-          <select id="ntcSelect" onchange="onCfgChange()" style="width:200px;height:34px;"></select>
+          <label style="font-size:.85rem;font-weight:700;color:#555;">siNTC <span style="font-weight:400;color:#888">— baseline for ΔΔCt</span></label>
+          <div class="refgene-drop" id="cfgNtcDrop">
+            <div class="refgene-btn" id="cfgNtcBtn" onclick="toggleNtcDrop(event)">
+              <span class="rg-label placeholder" id="cfgNtcLabel">Select…</span>
+              <span class="rg-arrow">▼</span>
+            </div>
+            <div class="refgene-panel" id="cfgNtcPanel"></div>
+          </div>
           <span id="cfgNtcErr" style="font-size:.78rem;color:var(--err,#a11c1c);display:none"></span>
         </div>
         <div class="mapper-item">
@@ -387,6 +426,48 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             </div>
             <div class="refgene-panel" id="cfgSamplePanel"></div>
           </div>
+        </div>
+        <div class="mapper-item">
+          <label style="font-size:.85rem;font-weight:700;color:#555;">KDE Plates</label>
+          <div class="refgene-drop plate-mode-drop" id="kdePlateModeDrop">
+            <div class="refgene-btn" id="kdePlateModeBtn" onclick="togglePlateModeDrop('kde',event)">
+              <span class="rg-label" id="kdePlateModeLabel">Auto-detect</span>
+              <span class="rg-arrow">▼</span>
+            </div>
+            <div class="refgene-panel" id="kdePlateModePanel"></div>
+          </div>
+        </div>
+        <div class="mapper-item">
+          <label style="font-size:.85rem;font-weight:700;color:#555;">Matrix Plates</label>
+          <div class="refgene-drop plate-mode-drop" id="matrixPlateModeDrop">
+            <div class="refgene-btn" id="matrixPlateModeBtn" onclick="togglePlateModeDrop('matrix',event)">
+              <span class="rg-label" id="matrixPlateModeLabel">Auto-detect</span>
+              <span class="rg-arrow">▼</span>
+            </div>
+            <div class="refgene-panel" id="matrixPlateModePanel"></div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:.75rem;color:#6b7a8d;margin:6px 0 0">Unselected plates are auto-detected. Each plate can use only one mode.</p>
+
+      <!-- ── Multi-NTC & Sample Mapping (collapsible, collapsed by default) ── -->
+      <div style="margin-top:10px">
+        <button type="button" id="multiNtcToggleBtn" onclick="toggleMultiNtcPanel()" style="background:none;border:none;padding:0;font-size:.8rem;font-weight:600;color:var(--primary);cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+          ▶ Multi-NTC &amp; Sample Mapping (Optional)
+        </button>
+        <div id="multiNtcWrap" class="multi-ntc-wrap hidden">
+          <div class="multi-ntc-header">
+            <div>
+              <h4>Multiple NTC Pairing &amp; Custom Baseline</h4>
+              <p style="font-size:.75rem;color:#64748b;margin:2px 0 0">Select which NTCs to enable, then drag samples to match their corresponding NTC baseline.</p>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn-secondary" type="button" style="padding:4px 10px;font-size:.76rem" onclick="autoMatchNtcSamples()">Auto-Match</button>
+              <button class="btn-secondary" type="button" style="padding:4px 10px;font-size:.76rem" onclick="resetNtcSampleMapping()">Reset to Default</button>
+            </div>
+          </div>
+
+          <div class="ntc-board" id="ntcBoard"></div>
         </div>
       </div>
       <!-- ── Omit Well ── -->
@@ -422,6 +503,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           </div>
 
           <!-- Data Completeness Matrix -->
+                    <div class="cfg-row" style="margin:0 0 14px">
+                      <div class="cfg-item">
+                        <label for="techRepCtRange">Technical replicate Ct range warning</label>
+                        <input id="techRepCtRange" type="number" min="0" max="20" step="0.1" value="1.0" onchange="runAnalysis()"/>
+                        <small style="color:var(--muted);font-size:.74rem">Warn when max − min Ct exceeds this value; 0 disables the warning. No wells are removed automatically.</small>
+                      </div>
+                    </div>
+                    <div id="cfgQualityWarning" class="alert alert-warning quality-warning" style="display:none"></div>
+
+                    <!-- Data Completeness Matrix -->
           <div>
             <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">Data Completeness Matrix</label>
             <p style="font-size:.76rem;color:#6b7a8d;margin-bottom:6px">Each cell = bio-reps with all 4 data points present (siRNA+Target, siRNA+HK, siNTC+Target, siNTC+HK) / total bio-reps.</p>
@@ -440,7 +531,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       </div>
     </div>
     <div class="btn-row">
-      <button class="btn-primary" onclick="runAnalysis()">Run Analysis</button>
+      <button class="btn-primary" onclick="runAnalysis(true)">Run Analysis</button>
       <span id="cfgRunErr" style="font-size:.82rem;color:var(--err,#a11c1c);display:none"></span>
     </div>
   </div>
@@ -471,38 +562,50 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
     <!-- ── Group 1: Results ── -->
     <div id="resGroup1">
+      <div class="col-mapper" style="margin-bottom:10px;padding:10px 12px">
+        <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:end">
+          <div class="mapper-item">
+            <label for="detailSearch">Search</label>
+            <input type="text" id="detailSearch" placeholder="sample / target / value" oninput="refreshResultFilters()"/>
+          </div>
+          <div class="mapper-item">
+            <label for="detailExclude">Exclude</label>
+            <input type="text" id="detailExclude" placeholder="keyword; keyword" oninput="refreshResultFilters()"/>
+          </div>
+          <div class="mapper-item">
+            <label>Row Type (Detail only)</label>
+            <div class="refgene-drop" id="detailRowTypeDrop" style="width:160px">
+              <div class="refgene-btn" id="detailRowTypeBtn" onclick="toggleDetailRowTypeDrop(event)">
+                <span class="rg-label" id="detailRowTypeLabel">all</span>
+                <span class="rg-arrow">▼</span>
+              </div>
+              <div class="refgene-panel" id="detailRowTypePanel"></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" type="button" onclick="resetDetailView()">Reset Filters</button>
+          <span id="detailCount" style="font-size:.8rem;color:#6b7a8d"></span>
+        </div>
+      </div>
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTabGroup('resGroup1','tabKD',this)">KD Summary</button>
+        <button id="fcMatrixTabBtn" class="tab-btn" onclick="switchTabGroup('resGroup1','tabFC',this)">Expression FC Matrix</button>
         <button class="tab-btn" onclick="switchTabGroup('resGroup1','tabDetail',this)">ΔCt / ΔΔCt Detail</button>
         <button class="tab-btn" onclick="switchTabGroup('resGroup1','tabMethod',this)">Method</button>
+      </div>
+      <div class="tab-panel" id="tabFC">
+        <p style="font-size:.8rem;color:#6b7a8d;margin:0 0 8px">Fold change relative to each target's NTC (1.0): <span style="color:#a32332;font-weight:700">red = increased</span>, <span style="color:#1d4d8f;font-weight:700">blue = decreased</span>; darker = greater change.</p>
+        <div class="tbl-wrap"><table id="fcMatrixTable"></table></div>
       </div>
       <div class="tab-panel active" id="tabKD">
         <div class="tbl-wrap"><table id="kdTable"></table></div>
       </div>
       <div class="tab-panel" id="tabDetail">
-        <div class="col-mapper" style="margin-bottom:10px;padding:10px 12px">
-          <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:end">
-            <div class="mapper-item">
-              <label>Search</label>
-              <input type="text" id="detailSearch" placeholder="treatment / primer / value" oninput="refreshDetailTable()"/>
-            </div>
-            <div class="mapper-item">
-              <label>Row Type</label>
-              <div class="refgene-drop" id="detailRowTypeDrop" style="width:160px">
-                <div class="refgene-btn" id="detailRowTypeBtn" onclick="toggleDetailRowTypeDrop(event)">
-                  <span class="rg-label" id="detailRowTypeLabel">all</span>
-                  <span class="rg-arrow">▼</span>
-                </div>
-                <div class="refgene-panel" id="detailRowTypePanel"></div>
-              </div>
-            </div>
-          </div>
-          <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn-secondary" type="button" onclick="resetDetailView()">Reset Filters</button>
-            <span id="detailCount" style="font-size:.8rem;color:#6b7a8d"></span>
-          </div>
+        <div style="display:flex;justify-content:flex-end;margin:0 0 8px">
+          <button id="detailTableExpandBtn" class="btn-secondary" type="button" aria-expanded="false" onclick="toggleDetailTableExpanded()">Expand Table</button>
         </div>
-        <div class="tbl-wrap"><table id="detailTable"></table></div>
+        <div class="tbl-wrap detail-table-wrap"><table id="detailTable"></table></div>
       </div>
       <div class="tab-panel" id="tabMethod">
         <div class="formula-box">
@@ -520,8 +623,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <strong>Step 6 – Geometric mean across bio-reps &amp; KD%:</strong><br>
           <code>Mean Rel. Exp. = 2^(mean of log₂(Rel. Exp.)) = 2^(−mean(ΔΔCt))</code><br>
           <code>KD% = (1 − Mean Rel. Exp.) × 100</code><br>
-          <code>SE = SD(Rel. Exp.) / √n  &nbsp;[linear scale, around geometric mean]</code><br><br>
+          <code>SE = Mean Rel. Exp. × ln(2) × SD(log₂(Rel. Exp.)) / √n  &nbsp;[delta-method estimate]</code><br><br>
           <em>Geometric mean is used for fold-change data (Rel. Exp.) because 2^x is convex — arithmetic mean would overestimate the center (Jensen's inequality). For siNTC: mean(ΔΔCt) = 0 by definition, so Mean Rel. Exp. = 2⁰ = exactly 1.0 (100%).</em>
+                  <br><br><em>Assumption: target and reference assays have approximately equal amplification efficiencies. Validate assay efficiencies independently; this tool does not estimate them from Ct data alone.</em>
         </div>
       </div>
     </div>
@@ -529,12 +633,29 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     <div class="btn-row" style="margin-top:14px">
       <button class="btn-secondary" onclick="downloadKDcsv()">KD Summary CSV</button>
       <button class="btn-secondary" onclick="downloadDetailCsv()">Full Detail CSV</button>
+      <button class="btn-secondary" onclick="downloadAnalysisMetadata()">Analysis Settings JSON</button>
     </div>
 
     <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
 
     <!-- ── Group 2: Charts ── -->
     <div id="resGroup2">
+      <div class="chart-facet-toolbar">
+        <div class="chart-facet-field">
+          <label for="chartFacetMode">Facet charts by</label>
+          <select id="chartFacetMode" onchange="onChartFacetChange()">
+            <option value="none">No faceting</option>
+            <option value="sample">Sample</option>
+            <option value="ntc">Baseline siNTC</option>
+            <option value="keyword">siRNA keyword</option>
+          </select>
+        </div>
+        <div class="chart-facet-field" id="chartFacetKeywordWrap" style="display:none">
+          <label for="chartFacetKeyword">Keyword</label>
+          <input id="chartFacetKeyword" type="text" placeholder="e.g. siGENE" oninput="onChartFacetChange()" disabled />
+        </div>
+        <span class="chart-facet-hint" id="chartFacetHint">One chart set per selected plate, when applicable.</span>
+      </div>
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTabGroup('resGroup2','figRel',this)">Expression level</button>
         <button class="tab-btn" onclick="switchTabGroup('resGroup2','figBar',this)">KD Efficiency Bar Chart</button>
@@ -570,10 +691,290 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
 </div>
 
+<script id="analysis-core-inline">
+(function(root, factory){
+  const api = factory();
+  if(typeof module !== 'undefined' && module.exports) module.exports = api;
+  if(root) root.QPCRAnalysisCore = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(){
+  'use strict';
+
+  function parseCtValue(raw){
+    const value = String(raw ?? '').trim();
+    if(!value || /undetermined|n\/a|nan|no.?ct/i.test(value)) return NaN;
+    const ct = Number(value);
+    return Number.isFinite(ct) && ct > 0 && ct < 60 ? ct : NaN;
+  }
+
+  function geometricMeanSe(values, geometricMean){
+    if(values.length < 2) return NaN;
+    const logValues = values.map(Math.log2);
+    const meanLog = logValues.reduce((sum,value)=>sum+value,0)/logValues.length;
+    const sampleVariance = logValues.reduce((sum,value)=>sum+(value-meanLog)**2,0)/(logValues.length-1);
+    return geometricMean * Math.LN2 * Math.sqrt(sampleVariance/logValues.length);
+  }
+
+  function buildTechMap(activeRows){
+    const techMap = Object.create(null);
+    activeRows.forEach(row => {
+      const key = `${row.siRNA}\x00${row.primer}`;
+      if(!techMap[key]) techMap[key] = {siRNA:row.siRNA, primer:row.primer, cts:[], wells:[]};
+      techMap[key].cts.push(row.ct);
+      techMap[key].wells.push(row.well);
+    });
+    const avgCt = Object.create(null);
+    const avgWells = Object.create(null);
+    const rawCts = Object.create(null);
+    Object.values(techMap).forEach(({siRNA, primer, cts, wells}) => {
+      if(!avgCt[siRNA]) avgCt[siRNA] = Object.create(null);
+      if(!avgWells[siRNA]) avgWells[siRNA] = Object.create(null);
+      if(!rawCts[siRNA]) rawCts[siRNA] = Object.create(null);
+      avgCt[siRNA][primer] = cts.reduce((sum,value)=>sum+value,0)/cts.length;
+      const pairs = wells.map((well,index)=>[well||'',cts[index]]);
+      const seen = new Set();
+      const uniquePairs = pairs.filter(([well])=>{
+        if(seen.has(well)) return false;
+        seen.add(well);
+        return true;
+      });
+      uniquePairs.sort((a,b)=>a[0].localeCompare(b[0]));
+      avgWells[siRNA][primer] = uniquePairs.map(([well])=>well).filter(Boolean).join(';');
+      rawCts[siRNA][primer] = uniquePairs.map(([,ct])=>Number.isFinite(ct)?ct.toFixed(3):'N/A').join(';');
+    });
+    return {avgCt, avgWells, rawCts};
+  }
+
+  function normalizeWell(value){
+    const match = String(value ?? '').trim().match(/^([A-Za-z]+)0*(\d+)$/);
+    return match ? match[1].toUpperCase()+match[2] : '';
+  }
+
+  function findDuplicateWells(files, wellColumn){
+    const seen = new Map();
+    const duplicates = new Map();
+    (files || []).forEach(file => {
+      if(!file?.aoa || file.hdrIdx < 0 || wellColumn < 0) return;
+      for(let rowIndex=file.hdrIdx+1; rowIndex<file.aoa.length; rowIndex++){
+        const well = normalizeWell(file.aoa[rowIndex]?.[wellColumn]);
+        if(!well) continue;
+        const plate = file.assignedPlate || 1;
+        const key = `${plate}\x00${well}`;
+        if(!seen.has(key)){
+          seen.set(key, file.file?.name || file.name || 'Input');
+          continue;
+        }
+        if(!duplicates.has(key)) duplicates.set(key, {plate, well, count:2});
+        else duplicates.get(key).count++;
+      }
+    });
+    return [...duplicates.values()];
+  }
+
+  function getTechnicalReplicateWarnings(rows, maxCtRange, plateLabel=''){
+    const threshold = Number(maxCtRange);
+    if(!Number.isFinite(threshold) || threshold <= 0) return [];
+    const groups = new Map();
+    (rows || []).forEach(row => {
+      if(row.active === false || !Number.isFinite(row.ct)) return;
+      const key = `${row.siRNA}\x00${row.primer}`;
+      if(!groups.has(key)) groups.set(key, {siRNA:row.siRNA, primer:row.primer, cts:[]});
+      groups.get(key).cts.push(row.ct);
+    });
+    return [...groups.values()].flatMap(group=>{
+      if(group.cts.length < 2) return [];
+      const range = Math.max(...group.cts)-Math.min(...group.cts);
+      return range > threshold ? [{...group, range, plate:plateLabel}] : [];
+    });
+  }
+
+  function treatmentOf(siRNA, sampleToGroup){
+    if(sampleToGroup && sampleToGroup[siRNA]) return sampleToGroup[siRNA];
+    return String(siRNA || '').replace(/_\d+$/, '');
+  }
+
+  function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenesLower, overrideNtcMean, plateLabel, options={}){
+    const {avgCt, avgWells, rawCts} = techData;
+    const refGeneLower = refGeneInput.toLowerCase();
+    const plate = plateLabel ? {plate:plateLabel} : {};
+    const sampleMapping = options.ntcSampleMapping || {};
+    const sampleToGroup = options.sampleToGroup || {};
+    const defaultNtc = options.defaultNtc || ntcTreatments[0] || '';
+    const format = value => value===undefined || value===null || Number.isNaN(Number(value)) ? 'N/A' : Number(value).toFixed(3);
+    const deltaCt = Object.create(null);
+    Object.entries(avgCt).forEach(([siRNA, primers]) => {
+      const refKey = Object.keys(primers).find(primer=>primer.toLowerCase()===refGeneLower);
+      if(!refKey) return;
+      const refCt = primers[refKey];
+      deltaCt[siRNA] = Object.create(null);
+      Object.entries(primers).forEach(([primer,targetCt])=>{
+        if(refGenesLower.has(primer.toLowerCase())) return;
+        deltaCt[siRNA][primer] = targetCt-refCt;
+      });
+    });
+
+    const ntcMeanMap = Object.create(null);
+    const missingNtcBaselines = new Map();
+    ntcTreatments.forEach(ntc=>{
+      ntcMeanMap[ntc] = Object.create(null);
+      const ntcPool = Object.create(null);
+      Object.entries(deltaCt).forEach(([siRNA,primers])=>{
+        if(treatmentOf(siRNA,sampleToGroup)!==ntc) return;
+        Object.entries(primers).forEach(([primer,dct])=>{
+          if(!ntcPool[primer]) ntcPool[primer] = [];
+          ntcPool[primer].push(dct);
+        });
+      });
+      Object.entries(ntcPool).forEach(([primer,values])=>{
+        ntcMeanMap[ntc][primer] = values.reduce((sum,value)=>sum+value,0)/values.length;
+      });
+    });
+
+    function getNtcRef(assignedNtc, primer){
+      if(overrideNtcMean){
+        if(typeof overrideNtcMean[assignedNtc]==='object' && overrideNtcMean[assignedNtc]?.[primer]!==undefined)
+          return overrideNtcMean[assignedNtc][primer];
+        if(typeof overrideNtcMean[primer]==='number') return overrideNtcMean[primer];
+      } else if(ntcMeanMap[assignedNtc]?.[primer]!==undefined){
+        return ntcMeanMap[assignedNtc][primer];
+      }
+      const key = `${assignedNtc}\x00${primer}`;
+      missingNtcBaselines.set(key,{ntc:assignedNtc,primer,plate:plateLabel,refGene:refGeneInput});
+      return undefined;
+    }
+
+    const allTreatments = [...new Set(Object.keys(deltaCt).map(siRNA=>treatmentOf(siRNA,sampleToGroup)))];
+    const nonNTC = allTreatments.filter(treatment=>!ntcTreatments.includes(treatment)).sort();
+    const ntcOnly = allTreatments.filter(treatment=>ntcTreatments.includes(treatment)).sort();
+    const kdResults = [], detailRows = [], ntcResults = [];
+
+    function computeGroup(treatment,targetArr,isNtc=false){
+      const assignedNtc = isNtc ? treatment : (sampleMapping[treatment] || defaultNtc);
+      const bioReps = Object.keys(deltaCt).filter(siRNA=>treatmentOf(siRNA,sampleToGroup)===treatment).sort();
+      const primers = [...new Set(bioReps.flatMap(siRNA=>Object.keys(deltaCt[siRNA]||{})))];
+      primers.forEach(primer=>{
+        const ntcRef = getNtcRef(assignedNtc,primer);
+        if(ntcRef===undefined) return;
+        const relExps = [], repWells = [], repBioReps = [];
+        bioReps.forEach(siRNA=>{
+          const dct = deltaCt[siRNA]?.[primer];
+          if(dct===undefined) return;
+          relExps.push(Math.pow(2,-(dct-ntcRef)));
+          repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
+          repBioReps.push(siRNA);
+        });
+        if(!relExps.length) return;
+        const meanLog2 = relExps.reduce((sum,value)=>sum+Math.log2(value),0)/relExps.length;
+        const meanRE = Math.pow(2,meanLog2);
+        const seRE = geometricMeanSe(relExps,meanRE);
+        targetArr.push({siRNA:treatment,primer,meanRE,seRE,refGene:refGeneInput,ntcRefName:assignedNtc,...plate,
+          kd:(1-meanRE)*100,kdSe:Number.isNaN(seRE)?NaN:seRE*100,n:relExps.length,reps:relExps,repWells,repBioReps});
+      });
+    }
+
+    nonNTC.forEach(treatment=>{
+      const assignedNtc = sampleMapping[treatment] || defaultNtc;
+      const bioReps = Object.keys(deltaCt).filter(siRNA=>treatmentOf(siRNA,sampleToGroup)===treatment).sort();
+      const primers = [...new Set(bioReps.flatMap(siRNA=>Object.keys(deltaCt[siRNA]||{})))];
+      const addedRefRows = new Set();
+      primers.forEach(primer=>{
+        const ntcRef = getNtcRef(assignedNtc,primer);
+        if(ntcRef===undefined) return;
+        const relExps = [], repWells = [], repBioReps = [];
+        bioReps.forEach(siRNA=>{
+          const refKey = Object.keys(avgCt[siRNA]||{}).find(key=>key.toLowerCase()===refGeneLower);
+          const refCt = refKey ? avgCt[siRNA]?.[refKey] : undefined;
+          if(refKey && !addedRefRows.has(siRNA)){
+            detailRows.push({...plate,row_type:'ref_gene',treatment,bio_rep:siRNA,
+              well:avgWells[siRNA]?.[refKey]||'N/A',raw_ct:rawCts[siRNA]?.[refKey]||'N/A',primer:refKey,ref_gene:'',
+              ct_ref_mean:'',ct_target_mean:'',dct:'',ntc_mean_dct:'',ddct:'',rel_exp:'',kd_pct:'',ntc_ref:assignedNtc});
+            addedRefRows.add(siRNA);
+          }
+          const dct = deltaCt[siRNA]?.[primer];
+          if(dct===undefined) return;
+          const ddct = dct-ntcRef;
+          const relExp = Math.pow(2,-ddct);
+          relExps.push(relExp);
+          repWells.push(avgWells[siRNA]?.[primer]||'N/A');
+          repBioReps.push(siRNA);
+          detailRows.push({...plate,row_type:'target_gene',treatment,bio_rep:siRNA,
+            well:avgWells[siRNA]?.[primer]||'N/A',raw_ct:rawCts[siRNA]?.[primer]||'N/A',primer,ref_gene:refKey||refGeneInput,
+            ct_ref_mean:format(refCt),ct_target_mean:format(avgCt[siRNA]?.[primer]),dct:dct.toFixed(3),
+            ntc_mean_dct:ntcRef.toFixed(3),ddct:ddct.toFixed(3),rel_exp:relExp.toFixed(4),
+            kd_pct:((1-relExp)*100).toFixed(1),ntc_ref:assignedNtc});
+        });
+        if(!relExps.length) return;
+        const meanLog2 = relExps.reduce((sum,value)=>sum+Math.log2(value),0)/relExps.length;
+        const meanRE = Math.pow(2,meanLog2);
+        const seRE = geometricMeanSe(relExps,meanRE);
+        kdResults.push({...plate,siRNA:treatment,primer,meanRE,seRE,refGene:refGeneInput,ntcRefName:assignedNtc,
+          kd:(1-meanRE)*100,kdSe:Number.isNaN(seRE)?NaN:seRE*100,n:relExps.length,reps:relExps,repWells,repBioReps});
+      });
+    });
+
+    ntcOnly.forEach(treatment=>{
+      computeGroup(treatment,ntcResults,true);
+      const bioReps = Object.keys(deltaCt).filter(siRNA=>treatmentOf(siRNA,sampleToGroup)===treatment).sort();
+      bioReps.forEach(siRNA=>{
+        Object.keys(deltaCt[siRNA]||{}).forEach(primer=>{
+          const dct = deltaCt[siRNA][primer];
+          const ntcRef = getNtcRef(treatment,primer);
+          if(ntcRef===undefined) return;
+          const ddct = dct-ntcRef;
+          const relExp = Math.pow(2,-ddct);
+          const ntcRefKey = Object.keys(avgCt[siRNA]||{}).find(key=>key.toLowerCase()===refGeneLower);
+          const ntcRefCt = ntcRefKey ? avgCt[siRNA][ntcRefKey] : undefined;
+          detailRows.push({...plate,row_type:'ref_sample',treatment,bio_rep:siRNA,
+            well:avgWells[siRNA]?.[primer]||'N/A',raw_ct:rawCts[siRNA]?.[primer]||'N/A',primer,
+            ref_gene:ntcRefKey||refGeneInput,ct_ref_mean:format(ntcRefCt),ct_target_mean:format(avgCt[siRNA]?.[primer]),
+            dct:dct.toFixed(3),ntc_mean_dct:ntcRef.toFixed(3),ddct:ddct.toFixed(3),
+            rel_exp:relExp.toFixed(4),kd_pct:((1-relExp)*100).toFixed(1),ntc_ref:treatment});
+        });
+      });
+    });
+
+    const primaryNtc = ntcTreatments[0] || '';
+    return {refGene:refGeneInput,kdResults,ntcResults,detailRows,ntcMean:ntcMeanMap[primaryNtc]||{},ntcMeanMap,
+      missingNtcBaselines:[...missingNtcBaselines.values()]};
+  }
+
+  function csvCell(value, protectFormula=false){
+    let text = String(value ?? '');
+    if(protectFormula && /^[\u0000-\u0020]*[=+\-@]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g,'""')}"`;
+  }
+
+  function serializeCsv(headers,rows){
+    return '\ufeff'+[headers,...rows].map(row=>row.map(value=>csvCell(value,true)).join(',')).join('\r\n')+'\r\n';
+  }
+
+  function buildAnalysisMetadata(settings){
+    return {
+      tool:{name:'siRNA Knockdown Efficiency Analyzer',version:settings.version||'1.5'},
+      exportedAt:settings.exportedAt,
+      sourceFiles:settings.sourceFiles,
+      analysis:{
+        referenceGenes:settings.referenceGenes,
+        displayedReferenceGene:settings.displayedReferenceGene,
+        ntcTreatments:settings.ntcTreatments,
+        ntcMode:settings.ntcMode,
+        globalNtcPlate:settings.globalNtcPlate,
+        ntcSampleMapping:settings.ntcSampleMapping,
+        sampleToGroup:settings.sampleToGroup,
+        omittedWells:settings.omittedWells,
+        technicalReplicateCtRangeWarning:settings.technicalReplicateCtRangeWarning
+      },
+      chart:{facetMode:settings.facetMode,keyword:settings.keyword}
+    };
+  }
+
+  return {parseCtValue,geometricMeanSe,buildTechMap,findDuplicateWells,getTechnicalReplicateWarnings,computePerPlateAnalysis,csvCell,serializeCsv,buildAnalysisMetadata};
+});
+</script>
 <script>
 /* ═══════════════════════════════════════════════════════
    GLOBAL STATE
 ═══════════════════════════════════════════════════════ */
+const analysisCore = window.QPCRAnalysisCore;
 let layoutAoa      = null;
 let resultAoa      = null;
 let resultHdrIdx   = -1;
@@ -584,8 +985,17 @@ let resultFileStem = '';
 let showNTC        = false;
 let currentResultRefGene = '';
 let currentFilteredKd = null;
+let currentFilteredKDE = null;
 let currentFilteredDetailRows = null;
-let detailViewState = {search:'',sortCol:'',sortDir:'asc'};
+let resultViewAutoSelected = false;
+let detailViewState = {search:'',exclude:'',sortCol:'',sortDir:'asc'};
+let kdePlateSelections = [];
+let matrixPlateSelections = [];
+let sampleToGroup = {}; // siRNA -> biogroup mapping
+
+/* ── Multi-NTC state ── */
+let selectedNtcList   = []; // ['siNTC-mix', 'siNTC-GS', ...]
+let ntcSampleMapping  = {}; // { 'siFNIP1-GS': 'siNTC-GS', 'siFNIP1': 'siNTC-mix' }
 
 /* ── Multi-plate state ── */
 let layoutFiles       = []; // [{file, aoa, hdrIdx, assignedPlate (1-based)}]
@@ -626,6 +1036,54 @@ function getDistinctPlateNumbers(){
   const lPlates = layoutFiles.map(f => f.assignedPlate);
   const rPlates = resultFiles.map(f => f.assignedPlate);
   return [...new Set([...lPlates, ...rPlates])].sort((a,b)=>a-b);
+}
+function togglePlateModeDrop(mode,event){
+  event&&event.stopPropagation();
+  const other=mode==='kde'?'matrix':'kde';
+  const btn=document.getElementById(`${mode}PlateModeBtn`);
+  const panel=document.getElementById(`${mode}PlateModePanel`);
+  document.getElementById(`${other}PlateModeBtn`)?.classList.remove('open');
+  document.getElementById(`${other}PlateModePanel`)?.classList.remove('open');
+  if(!btn||!panel)return;
+  const opening=!panel.classList.contains('open');
+  btn.classList.toggle('open',opening);
+  panel.classList.toggle('open',opening);
+}
+function getPlateModeSelections(mode){
+  return [...document.querySelectorAll(`#${mode}PlateModePanel input.plate-mode-chk:checked`)].map(input=>input.value);
+}
+function updatePlateModeLabel(mode){
+  const selected=getPlateModeSelections(mode);
+  const label=document.getElementById(`${mode}PlateModeLabel`);
+  if(!label)return;
+  label.textContent=selected.length===0?'Auto-detect':selected.length===1?selected[0]:`${selected.length} plates`;
+  label.classList.toggle('placeholder',selected.length===0);
+}
+function populatePlateModeSelectors(){
+  const plates=getDistinctPlateNumbers().map(number=>`P${number}`);
+  kdePlateSelections=kdePlateSelections.filter(plate=>plates.includes(plate));
+  matrixPlateSelections=matrixPlateSelections.filter(plate=>plates.includes(plate)&&!kdePlateSelections.includes(plate));
+  ['kde','matrix'].forEach(mode=>{
+    const panel=document.getElementById(`${mode}PlateModePanel`);
+    if(!panel)return;
+    const selected=mode==='kde'?kdePlateSelections:matrixPlateSelections;
+    panel.innerHTML=plates.map(plate=>
+      `<label><input type="checkbox" class="plate-mode-chk" value="${plate}"${selected.includes(plate)?' checked':''} onchange="onPlateModeSelectionChange('${mode}',this)"> Plate ${plate.slice(1)}</label>`
+    ).join('');
+    updatePlateModeLabel(mode);
+  });
+}
+function onPlateModeSelectionChange(mode,checkbox){
+  const other=mode==='kde'?'matrix':'kde';
+  if(checkbox.checked){
+    const conflicting=[...document.querySelectorAll(`#${other}PlateModePanel input.plate-mode-chk`)].find(input=>input.value===checkbox.value);
+    if(conflicting)conflicting.checked=false;
+  }
+  kdePlateSelections=getPlateModeSelections('kde');
+  matrixPlateSelections=getPlateModeSelections('matrix');
+  updatePlateModeLabel('kde');
+  updatePlateModeLabel('matrix');
+  if(analysisResult)runAnalysis();
 }
 function updateIsMultiPlate(){
   isMultiPlate = computeTotalPlates() > 1;
@@ -707,6 +1165,7 @@ function invalidateMerge(){
   if(!multiPlateMergedRows.length && !mergedRows.length) return; // nothing to invalidate
   multiPlateMergedRows = [];
   mergedRows           = [];
+  sampleToGroup        = {};
   savedMappingConfig   = null;
   analysisResult       = null;
   // Hide Configure + Results cards and reset step indicator
@@ -886,7 +1345,7 @@ function readLayoutFileAtIdx(idx){
   if(ext === 'csv'){
     reader.onload = ev => {
       try { finish(ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').map(l=>splitCSV(l))); }
-      catch(err){ if(isP1()) showStatus('layoutStatus','error','❌ '+err.message); }
+      catch(err){ if(isP1()) showStatus('layoutStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsText(file, 'UTF-8');
   } else {
@@ -895,7 +1354,7 @@ function readLayoutFileAtIdx(idx){
         const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
         const ws = wb.Sheets[wb.SheetNames[0]];
         finish(trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''})));
-      } catch(err){ if(isP1()) showStatus('layoutStatus','error','❌ '+err.message); }
+      } catch(err){ if(isP1()) showStatus('layoutStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsArrayBuffer(file);
   }
@@ -952,7 +1411,7 @@ function readResultFileAtIdx(idx){
   if(ext === 'csv'){
     reader.onload = ev => {
       try { finish(ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').map(l=>splitCSV(l)), file.name); }
-      catch(err){ if(isP1()) showStatus('resultStatus','error','❌ '+err.message); }
+      catch(err){ if(isP1()) showStatus('resultStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsText(file, 'UTF-8');
   } else {
@@ -962,7 +1421,7 @@ function readResultFileAtIdx(idx){
         const sheetName = chooseBestResultSheet(wb) || wb.SheetNames[0];
         const ws = wb.Sheets[sheetName];
         finish(trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''})), `Sheet "${sheetName}"`);
-      } catch(err){ if(isP1()) showStatus('resultStatus','error','❌ '+err.message); }
+      } catch(err){ if(isP1()) showStatus('resultStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsArrayBuffer(file);
   }
@@ -973,6 +1432,18 @@ function onNtcModeChange(){
   const sel = document.getElementById('globalNtcPlateSelector');
   if(sel) sel.style.display = ntcMode === 'global' ? 'inline-flex' : 'none';
   if(analysisResult) runAnalysis();
+}
+function getRequestedPlateMode(plate,rows){
+  if(kdePlateSelections.includes(plate)) return 'kde';
+  if(matrixPlateSelections.includes(plate)) return 'matrix';
+  return shouldShowExpressionMatrix(rows)?'matrix':'kde';
+}
+
+function getPlateLabelForRow(row){
+  return row.plate||row.sourcePlate||analysisResult?.singlePlateLabel||`P${getDistinctPlateNumbers()[0]||1}`;
+}
+function getPlateAnalysisMode(row){
+  return analysisResult?.plateModes?.[getPlateLabelForRow(row)]||'kde';
 }
 
 function populateGlobalNtcPlateSelect(){
@@ -1076,7 +1547,7 @@ function trimAoa(aoa){
 }
 
 function handleLayoutFile(file){
-  showStatus('layoutStatus','info',`Reading ${file.name} …`);
+  showStatus('layoutStatus','info',`Reading ${esc(file.name)} …`);
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
   if(ext === 'csv'){
@@ -1089,7 +1560,7 @@ function handleLayoutFile(file){
         markZoneDone('zoneLayout', `✅ ${file.name}`);
         document.getElementById('layoutStatus').classList.add('hidden');
         tryShowLayoutMapper();
-      } catch(err){ showStatus('layoutStatus','error','❌ '+err.message); }
+      } catch(err){ showStatus('layoutStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsText(file,'UTF-8');
   } else {
@@ -1103,7 +1574,7 @@ function handleLayoutFile(file){
         markZoneDone('zoneLayout', `✅ ${file.name}`);
         document.getElementById('layoutStatus').classList.add('hidden');
         tryShowLayoutMapper();
-      } catch(err){ showStatus('layoutStatus','error','❌ '+err.message); }
+      } catch(err){ showStatus('layoutStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsArrayBuffer(file);
   }
@@ -1111,7 +1582,7 @@ function handleLayoutFile(file){
 
 function handleResultFile(file){
   resultFileStem = file.name.replace(/\.[^.]+$/,'');
-  showStatus('resultStatus','info',`Reading ${file.name} …`);
+  showStatus('resultStatus','info',`Reading ${esc(file.name)} …`);
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
 
@@ -1136,7 +1607,7 @@ function handleResultFile(file){
       try {
         const lines = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
         finishResult(lines.map(l => splitCSV(l)), file.name);
-      } catch(err){ showStatus('resultStatus','error','❌ '+err.message); }
+      } catch(err){ showStatus('resultStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsText(file, 'UTF-8');
   } else {
@@ -1147,7 +1618,7 @@ function handleResultFile(file){
         const ws = wb.Sheets[sheetName];
         finishResult(trimAoa(XLSX.utils.sheet_to_json(ws, {header:1, defval:''})),
           `Sheet "${sheetName}"`);
-      } catch(err){ showStatus('resultStatus','error','❌ '+err.message); }
+      } catch(err){ showStatus('resultStatus','error','❌ '+esc(err.message)); }
     };
     reader.readAsArrayBuffer(file);
   }
@@ -1284,7 +1755,7 @@ function parsePlateMapToList(aoa){
 /* ═══════════════════════════════════════════════════════
    COLUMN AUTO-GUESS
 ═══════════════════════════════════════════════════════ */
-function guessCol(labels, exactPatterns, partialPatterns){
+function guessCol(labels, exactPatterns, partialPatterns, defaultIdx = 0){
   for(const pat of exactPatterns){
     const re = new RegExp(pat, 'i');
     const i  = labels.findIndex(h => re.test(normalizeHdrKey(h)));
@@ -1295,7 +1766,7 @@ function guessCol(labels, exactPatterns, partialPatterns){
     const i = labels.findIndex(h => normalizeHdrKey(h).includes(p));
     if(i >= 0) return i;
   }
-  return 0;
+  return defaultIdx;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1304,13 +1775,15 @@ function guessCol(labels, exactPatterns, partialPatterns){
 function tryShowLayoutMapper(){
   if(!layoutAoa) return;
   const lHdrCells = layoutAoa[layoutHdrIdx].map((c,i) => String(c).trim() || `col${i+1}`);
-  const lWell  = guessCol(lHdrCells, ['^well$'], ['well']);
-  const lSiRNA = guessCol(lHdrCells, ['^sample$','^sirna$','^samplename$'], ['sample','sirna','si rna','treatment']);
-  const lPrimer= guessCol(lHdrCells, ['^primer$','^gene$'], ['primer','gene','target']);
+  const lWell     = guessCol(lHdrCells, ['^wellposition$','^wellpos$','^well$'], ['wellposition','well pos','well']);
+  const lSiRNA    = guessCol(lHdrCells, ['^sample$','^sirna$','^samplename$'], ['sample','sirna','si rna','treatment']);
+  const lPrimer   = guessCol(lHdrCells, ['^primer$','^gene$'], ['primer','gene','target']);
+  const lBiogroup = guessCol(lHdrCells, ['^biogroup$','^biogroupname$','^group$'], ['biogroup','bio group','group'], -1);
   buildMapper('layoutMapperGrid',[
-    {id:'lmap_well',   label:'Well',          guess:lWell},
-    {id:'lmap_sirna',  label:'Sample',   guess:lSiRNA},
-    {id:'lmap_primer', label:'Primer/Target', guess:lPrimer}
+    {id:'lmap_well',     label:'Well',          guess:lWell},
+    {id:'lmap_sirna',    label:'Sample',        guess:lSiRNA},
+    {id:'lmap_primer',   label:'Primer/Target', guess:lPrimer},
+    {id:'lmap_biogroup', label:'Biogroup Name', guess:lBiogroup, optional:true}
   ], lHdrCells);
   document.getElementById('layoutMapperWrap').style.display = 'block';
   tryShowBothLoaded();
@@ -1326,11 +1799,13 @@ function tryShowResultMapper(){
     {id:'rmap_ct',   label:'CT',           guess:rCt}
   ], rHdrCells);
   /* meta columns — always populate so they're ready when checkbox is ticked */
-  const rSiRNA  = guessCol(rHdrCells, ['^sample$','^samplename$','^sirna$'], ['sample name','samplename','sirna','treatment']);
-  const rPrimer = guessCol(rHdrCells, ['^targetname$','^target$','^primer$','^gene$'], ['targetname','target name','primer','gene','target']);
+  const rSiRNA    = guessCol(rHdrCells, ['^sample$','^samplename$','^sirna$'], ['sample name','samplename','sirna','treatment']);
+  const rPrimer   = guessCol(rHdrCells, ['^targetname$','^target$','^primer$','^gene$'], ['targetname','target name','primer','gene','target']);
+  const rBiogroup = guessCol(rHdrCells, ['^biogroup$','^biogroupname$','^group$'], ['biogroup','bio group','group'], -1);
   buildMapper('resultMetaGrid',[
-    {id:'rmap_sirna',  label:'Sample name',   guess:rSiRNA},
-    {id:'rmap_primer', label:'Primer/Target', guess:rPrimer}
+    {id:'rmap_sirna',    label:'Sample name',   guess:rSiRNA},
+    {id:'rmap_primer',   label:'Primer/Target', guess:rPrimer},
+    {id:'rmap_biogroup', label:'Biogroup Name', guess:rBiogroup, optional:true}
   ], rHdrCells);
   document.getElementById('resultMapperWrap').style.display = 'block';
   tryShowBothLoaded();
@@ -1386,7 +1861,7 @@ function buildMapper(gridId, items, options){
       <label>${item.label}${optLabel}</label>
       <select id="${item.id}">
         ${noneOpt}
-        ${options.map((o,i)=>`<option value="${i}" ${(i===item.guess&&item.guess!==-1)?'selected':''}>${o}</option>`).join('')}
+        ${options.map((o,i)=>`<option value="${i}" ${(i===item.guess&&item.guess!==-1)?'selected':''}>${esc(o)}</option>`).join('')}
       </select>`;
     grid.appendChild(div);
   });
@@ -1511,13 +1986,27 @@ function confirmMapping(){
   const rWellCol  = +document.getElementById('rmap_well').value;
   const rCtCol    = +document.getElementById('rmap_ct').value;
 
+  const resultWellSources = resultFiles.length ? resultFiles : [{aoa:resultAoa,hdrIdx:resultHdrIdx,assignedPlate:1,name:'Result'}];
+  const resultDuplicates = analysisCore.findDuplicateWells(resultWellSources,rWellCol);
+  const layoutWellColForCheck = withMeta ? -1 : +document.getElementById('lmap_well').value;
+  const layoutWellSources = layoutFiles.length ? layoutFiles : [{aoa:layoutAoa,hdrIdx:layoutHdrIdx,assignedPlate:1,name:'Metadata'}];
+  const layoutDuplicates = withMeta ? [] : analysisCore.findDuplicateWells(layoutWellSources,layoutWellColForCheck);
+  const duplicateWells = [...resultDuplicates,...layoutDuplicates];
+  if(duplicateWells.length){
+    const examples = duplicateWells.slice(0,8).map(item=>`P${item.plate} ${item.well} (${item.count} rows)`).join(', ');
+    showStatus('uploadMergeStatus','error',`Duplicate well positions detected within a plate: ${esc(examples)}${duplicateWells.length>8?`, and ${duplicateWells.length-8} more`:''}. Resolve duplicates before merging.`);
+    return;
+  }
+
   mergedRows = [];
+  sampleToGroup = {};
   let totalLayout=0, activeCount=0, skippedCount=0, noCtCount=0;
 
   if(withMeta){
     /* Result-file-only mode: sample name + primer come from result rows */
-    const rSiRNACol  = +document.getElementById('rmap_sirna').value;
-    const rPrimerCol = +document.getElementById('rmap_primer').value;
+    const rSiRNACol    = +document.getElementById('rmap_sirna').value;
+    const rPrimerCol   = +document.getElementById('rmap_primer').value;
+    const rBiogroupCol = +(document.getElementById('rmap_biogroup')?.value ?? -1);
 
     for(let i = resultHdrIdx+1; i < resultAoa.length; i++){
       const row    = resultAoa[i];
@@ -1527,8 +2016,12 @@ function confirmMapping(){
       const siRNA  = String(row[rSiRNACol] ||'').trim();
       const primer = String(row[rPrimerCol]||'').trim();
       const ctRaw  = String(row[rCtCol]||'').trim();
-      const ct     = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw)) ? NaN : parseFloat(ctRaw);
+      const ct     = analysisCore.parseCtValue(ctRaw);
       const active = siRNA !== '' && primer !== '';
+      if(rBiogroupCol >= 0 && siRNA){
+        const biogroup = String(row[rBiogroupCol] || '').trim();
+        if(biogroup) sampleToGroup[siRNA] = biogroup;
+      }
       if(!active) skippedCount++;
       else if(isNaN(ct)) noCtCount++;
       else activeCount++;
@@ -1536,9 +2029,10 @@ function confirmMapping(){
     }
   } else {
     /* Metadata-anchored mode */
-    const lWellCol  = +document.getElementById('lmap_well').value;
-    const lSiRNACol = +document.getElementById('lmap_sirna').value;
-    const lPrimerCol= +document.getElementById('lmap_primer').value;
+    const lWellCol     = +document.getElementById('lmap_well').value;
+    const lSiRNACol    = +document.getElementById('lmap_sirna').value;
+    const lPrimerCol   = +document.getElementById('lmap_primer').value;
+    const lBiogroupCol = +(document.getElementById('lmap_biogroup')?.value ?? -1);
 
     const ctMap = {};
     for(let i = resultHdrIdx+1; i < resultAoa.length; i++){
@@ -1546,8 +2040,7 @@ function confirmMapping(){
       const well  = normWell(String(row[rWellCol]||'').trim());
       const ctRaw = String(row[rCtCol]||'').trim();
       if(!well) continue;
-      ctMap[well] = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw))
-                    ? NaN : parseFloat(ctRaw);
+      ctMap[well] = analysisCore.parseCtValue(ctRaw);
     }
 
     for(let i = layoutHdrIdx+1; i < layoutAoa.length; i++){
@@ -1559,6 +2052,10 @@ function confirmMapping(){
       const primer = String(row[lPrimerCol]||'').trim();
       const ct     = ctMap.hasOwnProperty(well) ? ctMap[well] : NaN;
       const active = siRNA !== '' && primer !== '';
+      if(lBiogroupCol >= 0 && siRNA){
+        const biogroup = String(row[lBiogroupCol] || '').trim();
+        if(biogroup) sampleToGroup[siRNA] = biogroup;
+      }
       if(!active) skippedCount++;
       else if(isNaN(ct)) noCtCount++;
       else activeCount++;
@@ -1575,8 +2072,10 @@ function confirmMapping(){
       lWellCol:   withMeta ? 0 : +document.getElementById('lmap_well').value,
       lSiRNACol:  withMeta ? 0 : +document.getElementById('lmap_sirna').value,
       lPrimerCol: withMeta ? 0 : +document.getElementById('lmap_primer').value,
+      lBiogroupCol: withMeta ? -1 : +(document.getElementById('lmap_biogroup')?.value ?? -1),
       rSiRNACol:  withMeta ? +document.getElementById('rmap_sirna').value  : 0,
-      rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0
+      rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0,
+      rBiogroupCol: withMeta ? +(document.getElementById('rmap_biogroup')?.value ?? -1) : -1
     };
     const p1lfs = layoutFiles.filter(f => f.assignedPlate === 1);
     const p1rfs = resultFiles.filter(f => f.assignedPlate === 1);
@@ -1631,8 +2130,10 @@ function confirmMapping(){
       lWellCol:   withMeta ? 0 : +document.getElementById('lmap_well').value,
       lSiRNACol:  withMeta ? 0 : +document.getElementById('lmap_sirna').value,
       lPrimerCol: withMeta ? 0 : +document.getElementById('lmap_primer').value,
+      lBiogroupCol: withMeta ? -1 : +(document.getElementById('lmap_biogroup')?.value ?? -1),
       rSiRNACol:  withMeta ? +document.getElementById('rmap_sirna').value  : 0,
-      rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0
+      rPrimerCol: withMeta ? +document.getElementById('rmap_primer').value : 0,
+      rBiogroupCol: withMeta ? +(document.getElementById('rmap_biogroup')?.value ?? -1) : -1
     };
     multiPlateMergedRows = [mergedRows];
     const distinctPlates = getDistinctPlateNumbers();
@@ -1798,7 +2299,7 @@ function _renderMergedPreview(){
     const rowStyle = !r._active ? 'color:#bbb' : '';
     const stColor = !r._active ? '' : r._hasct ? 'color:#34a853' : 'color:#ffa000';
     html += `<tr style="${rowStyle}">
-      <td>${r.well}</td><td>${r.siRNA}</td><td>${r.primer}</td><td>${r.ct}</td>
+      <td>${esc(r.well)}</td><td>${esc(r.siRNA)}</td><td>${esc(r.primer)}</td><td>${esc(r.ct)}</td>
       <td style="${stColor}">${r.status}</td></tr>`;
   });
   div.innerHTML = html + '</tbody></table></div>';
@@ -1815,8 +2316,12 @@ function buildMergedRowsFromConfig(p, cfg){
       const siRNA  = String(row[cfg.rSiRNACol]  || '').trim();
       const primer = String(row[cfg.rPrimerCol] || '').trim();
       const ctRaw  = String(row[cfg.rCtCol]     || '').trim();
-      const ct     = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw)) ? NaN : parseFloat(ctRaw);
+      const ct     = analysisCore.parseCtValue(ctRaw);
       const active = siRNA !== '' && primer !== '';
+      if(cfg.rBiogroupCol >= 0 && siRNA){
+        const biogroup = String(row[cfg.rBiogroupCol] || '').trim();
+        if(biogroup) sampleToGroup[siRNA] = biogroup;
+      }
       rows.push({well, siRNA, primer, ct, active});
     }
   } else {
@@ -1826,7 +2331,7 @@ function buildMergedRowsFromConfig(p, cfg){
       const well  = normWell(String(row[cfg.rWellCol] || '').trim());
       const ctRaw = String(row[cfg.rCtCol] || '').trim();
       if(!well) continue;
-      ctMap[well] = (!ctRaw || /undetermined|n\/a|nan|no.?ct/i.test(ctRaw)) ? NaN : parseFloat(ctRaw);
+      ctMap[well] = analysisCore.parseCtValue(ctRaw);
     }
     for(let i = p.layoutHdrIdx + 1; i < p.layoutAoa.length; i++){
       const row    = p.layoutAoa[i];
@@ -1836,6 +2341,10 @@ function buildMergedRowsFromConfig(p, cfg){
       const primer = String(row[cfg.lPrimerCol] || '').trim();
       const ct     = ctMap.hasOwnProperty(well) ? ctMap[well] : NaN;
       const active = siRNA !== '' && primer !== '';
+      if(cfg.lBiogroupCol >= 0 && siRNA){
+        const biogroup = String(row[cfg.lBiogroupCol] || '').trim();
+        if(biogroup) sampleToGroup[siRNA] = biogroup;
+      }
       rows.push({well, siRNA, primer, ct, active});
     }
   }
@@ -1866,12 +2375,27 @@ function showConfig(){
 
   const ntcPatterns = ['ntc','negative control','scramble','mock','vehicle'];
   const ntcAuto     = treatments.filter(t => ntcPatterns.some(p=>t.toLowerCase().includes(p)));
-
-  const ntcSel = document.getElementById('ntcSelect');
   const sortedTreatments = [...treatments].sort();
-  ntcSel.innerHTML = sortedTreatments.map(t =>
-    `<option value="${t}"${ntcAuto.includes(t)?' selected':''}>${t}</option>`
-  ).join('');
+
+  // Initialize selectedNtcList: all detected NTCs are automatically checked by default!
+  if(!selectedNtcList.length || !selectedNtcList.some(n => sortedTreatments.includes(n))){
+    selectedNtcList = ntcAuto.length ? [...ntcAuto] : (sortedTreatments.length ? [sortedTreatments[0]] : []);
+  } else {
+    selectedNtcList = selectedNtcList.filter(n => sortedTreatments.includes(n));
+  }
+
+  const ntcPanel = document.getElementById('cfgNtcPanel');
+  if(ntcPanel){
+    ntcPanel.innerHTML = sortedTreatments.map(t => {
+      const isCandidate = ntcAuto.includes(t);
+      const isChecked = selectedNtcList.includes(t);
+      return `<label><input type="checkbox" class="ntc-drop-chk" value="${esc(t)}"${isChecked?' checked':''} onchange="onNtcItemChange(this)"> ${esc(t)}${isCandidate?' <span style="font-size:.7rem;color:#64748b;font-weight:400">(NTC)</span>':''}</label>`;
+    }).join('');
+    updateNtcLabel();
+  }
+
+  // Initialize multi-NTC selection & mapping
+  initMultiNtcState(treatments);
 
   // Populate sample display filter dropdown
   const samplePanel = document.getElementById('cfgSamplePanel');
@@ -1883,6 +2407,7 @@ function showConfig(){
       ).join('');
     updateSampleLabel();
   }
+  populatePlateModeSelectors();
 
   /* Global NTC section — visible only in multi-plate mode */
   const globalNtcWrap = document.getElementById('globalNtcWrap');
@@ -1908,10 +2433,10 @@ function showConfig(){
       div.dataset.search = searchKey;
       const safeId = `omit_${idx}`;
       div.innerHTML = `
-        <input type="checkbox" class="omit-chk" id="${safeId}" value="${r.wellKey}"
+        <input type="checkbox" class="omit-chk" id="${safeId}" value="${esc(r.wellKey)}"
           onchange="toggleOmitItem(this)">
         <label for="${safeId}" style="cursor:pointer">
-          <strong>${wellDisplay}</strong> · ${r.siRNA} · ${r.primer}<br>
+          <strong>${esc(wellDisplay)}</strong> · ${esc(r.siRNA)} · ${esc(r.primer)}<br>
           <span style="font-size:.76rem;color:#777">Ct ${r.ct.toFixed(3)}</span>
         </label>`;
       omitGrid.appendChild(div);
@@ -1991,6 +2516,11 @@ document.addEventListener('click', function(e){
     document.getElementById('cfgRefGeneBtn')?.classList.remove('open');
     document.getElementById('cfgRefGenePanel')?.classList.remove('open');
   }
+  const nDrop = document.getElementById('cfgNtcDrop');
+  if(nDrop && !nDrop.contains(e.target)){
+    document.getElementById('cfgNtcBtn')?.classList.remove('open');
+    document.getElementById('cfgNtcPanel')?.classList.remove('open');
+  }
   const sDrop = document.getElementById('cfgSampleDrop');
   if(sDrop && !sDrop.contains(e.target)){
     document.getElementById('cfgSampleBtn')?.classList.remove('open');
@@ -2006,6 +2536,13 @@ document.addEventListener('click', function(e){
     document.getElementById('detailRowTypeBtn')?.classList.remove('open');
     document.getElementById('detailRowTypePanel')?.classList.remove('open');
   }
+  ['kde','matrix'].forEach(mode=>{
+    const drop=document.getElementById(`${mode}PlateModeDrop`);
+    if(drop&&!drop.contains(e.target)){
+      document.getElementById(`${mode}PlateModeBtn`)?.classList.remove('open');
+      document.getElementById(`${mode}PlateModePanel`)?.classList.remove('open');
+    }
+  });
 });
 
 function getCurrentAnalysisView(){
@@ -2042,10 +2579,56 @@ function populateDisplayedRefGeneSelects(){
   });
 }
 
+function shouldShowExpressionMatrix(rows){
+  const samples=[...new Set(rows.map(row=>String(row.siRNA||'')))];
+  const targets=[...new Set(rows.map(row=>String(row.primer||'')))];
+  if(samples.length<2||targets.length<2) return false;
+
+  const targetKeys=targets.map(target=>target.toLowerCase().replace(/[^a-z0-9]/g,''));
+  const hasSampleTargetMatch=samples.some(sample=>{
+    const sampleKey=sample.toLowerCase().replace(/[^a-z0-9]/g,'').replace(/^si(?:rna)?/,'');
+    return targetKeys.some(targetKey=>targetKey.length>=3&&(
+      sampleKey===targetKey||
+      (sampleKey.startsWith(targetKey)&&(!/\d$/.test(targetKey)||!/[0-9]/.test(sampleKey[targetKey.length])))
+    ));
+  });
+  const isLetteredSampleSet=samples.every(sample=>/^(?:sample[\s_-]*)?[a-d]$/i.test(sample.trim()));
+  return isLetteredSampleSet&&!hasSampleTargetMatch;
+}
+
+function setExpressionMatrixVisibility(showMatrix){
+  const button=document.getElementById('fcMatrixTabBtn');
+  if(!button||resultViewAutoSelected) return;
+  const activePanel=document.querySelector('#resGroup1 .tab-panel.active');
+  const targetTabId=showMatrix?'tabFC':'tabKD';
+  if(activePanel?.id!==targetTabId){
+    const targetButton=showMatrix?button:document.querySelector('#resGroup1 .tab-btn[onclick*="tabKD"]');
+    if(targetButton) switchTabGroup('resGroup1',targetTabId,targetButton);
+  }
+  resultViewAutoSelected=true;
+}
+
+function matchesSharedTextFilters(row){
+  const values=Object.values(row).map(value=>String(value??'').toLowerCase());
+  const search=detailViewState.search.toLowerCase();
+  if(search&&!values.some(value=>value.includes(search))) return false;
+  const excludeTerms=detailViewState.exclude.toLowerCase().split(/[;,\n]+/).map(term=>term.trim()).filter(Boolean);
+  return !excludeTerms.some(term=>values.some(value=>value.includes(term)));
+}
+
+function refreshResultFilters(){
+  detailViewState.search=document.getElementById('detailSearch')?.value.trim()||'';
+  detailViewState.exclude=document.getElementById('detailExclude')?.value.trim()||'';
+  if(analysisResult) renderActiveAnalysisView();
+}
+
 function renderActiveAnalysisView(){
   const view = syncCurrentAnalysisView();
   if(!view) return;
   populateDisplayedRefGeneSelects();
+  const plateModes=Object.values(analysisResult.plateModes||{});
+  const expressionMode=plateModes.length>0&&plateModes.every(mode=>mode==='matrix');
+  setExpressionMatrixVisibility(expressionMode);
 
   // Show/populate plate selector only in per-plate NTC mode
   const plateWrap = document.getElementById('resultPlateFilterWrap');
@@ -2063,19 +2646,29 @@ function renderActiveAnalysisView(){
 
   const selectedSamples = getSelectedSamples();
   const selectedPlates = (analysisResult && analysisResult.isPerPlate) ? getSelectedResultPlates() : null;
+  detailViewState.search=document.getElementById('detailSearch')?.value.trim()||'';
+  detailViewState.exclude=document.getElementById('detailExclude')?.value.trim()||'';
 
-  const filteredKd = view.kdResults.filter(r =>
+  const matchingRows = view.kdResults.filter(r =>
     (selectedSamples === null || selectedSamples.includes(r.siRNA)) &&
-    (selectedPlates === null || (r.plate && selectedPlates.includes(r.plate)))
+    (selectedPlates === null || (r.plate && selectedPlates.includes(r.plate))) &&
+    matchesSharedTextFilters(r)
   );
-  currentFilteredKd = filteredKd;
-  renderKDTable(filteredKd);
+  const activeMode=document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde';
+  const filteredKDE=matchingRows.filter(row=>getPlateAnalysisMode(row)==='kde');
+  const filteredMatrix=matchingRows.filter(row=>getPlateAnalysisMode(row)==='matrix');
+  const filteredKd=activeMode==='matrix'?filteredMatrix:filteredKDE;
+  currentFilteredKDE=filteredKDE;
+  currentFilteredKd=filteredKd;
+  renderExpressionMatrix(filteredMatrix);
+  renderKDTable(filteredKDE);
   currentFilteredDetailRows = view.detailRows.filter(r =>
     (selectedSamples === null || selectedSamples.includes(r.treatment)) &&
-    (selectedPlates === null || (r.plate && selectedPlates.includes(r.plate)))
+    (selectedPlates === null || (r.plate && selectedPlates.includes(r.plate))) &&
+    matchesSharedTextFilters(r)
   );
   renderDetailTable(currentFilteredDetailRows);
-  renderSummaryCards(filteredKd);
+  renderSummaryCards(filteredKd,activeMode==='matrix');
   renderCharts(filteredKd);
 }
 
@@ -2134,10 +2727,276 @@ function onResultPlateItemChange(){
   if(analysisResult) renderActiveAnalysisView();
 }
 
-function onCfgChange(){
+function onNtcSelectChange(){
+  const defaultNtc = document.getElementById('ntcSelect')?.value;
+  if(defaultNtc && !selectedNtcList.includes(defaultNtc)){
+    selectedNtcList = [defaultNtc, ...selectedNtcList.filter(n => n !== defaultNtc)];
+  }
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+  const active = allMergedRows.filter(r => r.active && !isNaN(r.ct));
+  const treatments = [...new Set(active.map(r=>r.siRNA).map(treatmentOf))];
+  renderMultiNtcUI(treatments);
+  onCfgChange(false);
+}
+
+function toggleMultiNtcPanel(){
+  const wrap = document.getElementById('multiNtcWrap');
+  const btn  = document.getElementById('multiNtcToggleBtn');
+  if(!wrap || !btn) return;
+  const willShow = wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', !willShow);
+  btn.innerHTML = willShow
+    ? '▼ Multi-NTC &amp; Sample Mapping (Optional)'
+    : '▶ Multi-NTC &amp; Sample Mapping (Optional)';
+}
+
+function getSelectedNtcList(){
+  const panel = document.getElementById('cfgNtcPanel');
+  if(!panel) return selectedNtcList || [];
+  return [...panel.querySelectorAll('input.ntc-drop-chk:checked')].map(cb => cb.value);
+}
+
+function updateNtcLabel(){
+  const lbl = document.getElementById('cfgNtcLabel');
+  if(!lbl) return;
+  const sel = getSelectedNtcList();
+  if(sel.length === 0){
+    lbl.textContent = 'Select…';
+    lbl.classList.add('placeholder');
+  } else if(sel.length <= 2){
+    lbl.textContent = sel.join(', ');
+    lbl.classList.remove('placeholder');
+  } else {
+    lbl.textContent = sel.length + ' NTC selected';
+    lbl.classList.remove('placeholder');
+  }
+}
+
+function toggleNtcDrop(e){
+  e && e.stopPropagation();
+  const btn = document.getElementById('cfgNtcBtn');
+  const panel = document.getElementById('cfgNtcPanel');
+  if(!btn || !panel) return;
+  const opening = !panel.classList.contains('open');
+  btn.classList.toggle('open', opening);
+  panel.classList.toggle('open', opening);
+}
+
+function onNtcItemChange(chk){
+  const sel = getSelectedNtcList();
+  if(sel.length === 0){
+    if(chk) chk.checked = true;
+    alert('At least one NTC baseline condition must remain selected.');
+    return;
+  }
+  selectedNtcList = sel;
+  updateNtcLabel();
+
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+  const active = allMergedRows.filter(r => r.active && !isNaN(r.ct));
+  const treatments = [...new Set(active.map(r=>r.siRNA).map(treatmentOf))];
+
+  // Re-verify mappings: any sample mapped to removed NTC fallback to remaining NTC
+  treatments.forEach(t => {
+    if(!selectedNtcList.includes(t)){
+      if(!ntcSampleMapping[t] || !selectedNtcList.includes(ntcSampleMapping[t])){
+        ntcSampleMapping[t] = selectedNtcList[0];
+      }
+    }
+  });
+
+  renderMultiNtcUI(treatments);
+  onCfgChange(false);
+}
+
+function initMultiNtcState(allTreatments){
+  selectedNtcList = getSelectedNtcList();
+  if(!selectedNtcList.length){
+    const ntcPatterns = ['ntc','negative control','scramble','mock','vehicle'];
+    const detected = allTreatments.filter(t => ntcPatterns.some(p=>t.toLowerCase().includes(p)));
+    selectedNtcList = detected.length ? [...detected] : (allTreatments.length ? [allTreatments[0]] : []);
+  }
+
+  // Auto-assign samples by suffix
+  autoMatchNtcSamples(false);
+  renderMultiNtcUI(allTreatments);
+}
+
+function renderMultiNtcUI(allTreatments){
+  const board = document.getElementById('ntcBoard');
+  if(!board) return;
+
+  // Auto-toggle panel visibility based on whether multiple NTCs are active
+  const wrap = document.getElementById('multiNtcWrap');
+  const btn  = document.getElementById('multiNtcToggleBtn');
+  if(wrap && btn){
+    if(selectedNtcList.length > 1){
+      wrap.classList.remove('hidden');
+      btn.innerHTML = `▼ Multi-NTC &amp; Sample Mapping (${selectedNtcList.length} NTC active)`;
+    } else {
+      wrap.classList.add('hidden');
+      btn.innerHTML = '▶ Multi-NTC &amp; Sample Mapping (Optional)';
+    }
+  }
+
+  const defaultNtc = selectedNtcList[0] || '';
+
+  // Samples to assign (treatments that are not currently in selectedNtcList)
+  const sampleTreatments = allTreatments.filter(t => !selectedNtcList.includes(t)).sort();
+
+  // Validate mapping
+  sampleTreatments.forEach(s => {
+    if(!ntcSampleMapping[s] || !selectedNtcList.includes(ntcSampleMapping[s])){
+      ntcSampleMapping[s] = defaultNtc || selectedNtcList[0];
+    }
+  });
+
+  // Render Columns (no emojis)
+  let boardHtml = '';
+  selectedNtcList.forEach(ntc => {
+    const isDef = ntc === defaultNtc;
+    const assignedSamples = sampleTreatments.filter(s => ntcSampleMapping[s] === ntc);
+    boardHtml += `
+      <div class="ntc-col" data-ntc="${esc(ntc)}">
+        <div class="ntc-col-hdr">
+          <span class="ntc-col-title">
+            ${esc(ntc)}
+            ${isDef ? '<span style="font-size:.68rem;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:4px">Default</span>' : ''}
+          </span>
+          <span class="ntc-col-count" id="count_${esc(ntc)}">${assignedSamples.length} samples</span>
+        </div>
+        <div class="ntc-col-drop" data-ntc="${esc(ntc)}" ondragover="onSampleDragOver(event)" ondragleave="onSampleDragLeave(event)" ondrop="onSampleDrop(event, '${esc(ntc)}')">
+          ${assignedSamples.map(s => `
+            <div class="sample-chip" draggable="true" data-sample="${esc(s)}" ondragstart="onSampleDragStart(event, '${esc(s)}')">
+              <strong>${esc(s)}</strong>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+  board.innerHTML = boardHtml;
+}
+
+let _draggedSample = null;
+function onSampleDragStart(e, sample){
+  _draggedSample = sample;
+  e.dataTransfer.setData('text/plain', sample);
+  e.currentTarget.classList.add('dragging');
+}
+document.addEventListener('dragend', function(e){
+  if(e.target && e.target.classList && e.target.classList.contains('sample-chip')){
+    e.target.classList.remove('dragging');
+  }
+  _draggedSample = null;
+});
+
+function onSampleDragOver(e){
+  e.preventDefault();
+  const dropZone = e.currentTarget;
+  dropZone.classList.add('drag-over');
+}
+function onSampleDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+function onSampleDrop(e, targetNtc){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const sample = _draggedSample || e.dataTransfer.getData('text/plain');
+  if(!sample || !targetNtc) return;
+
+  ntcSampleMapping[sample] = targetNtc;
+
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+  const active = allMergedRows.filter(r => r.active && !isNaN(r.ct));
+  const treatments = [...new Set(active.map(r=>r.siRNA).map(treatmentOf))];
+  renderMultiNtcUI(treatments);
+  // Do NOT scroll page on drag/drop!
+  onCfgChange(false);
+}
+
+function autoMatchNtcSamples(triggerUpdate = true){
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+  const active = allMergedRows.filter(r => r.active && !isNaN(r.ct));
+  const allTreatments = [...new Set(active.map(r=>r.siRNA).map(treatmentOf))];
+  const sampleTreatments = allTreatments.filter(t => !selectedNtcList.includes(t));
+  const defaultNtc = selectedNtcList[0] || '';
+
+  if(selectedNtcList.length <= 1){
+    sampleTreatments.forEach(s => { ntcSampleMapping[s] = selectedNtcList[0] || defaultNtc; });
+    if(triggerUpdate){
+      renderMultiNtcUI(allTreatments);
+      onCfgChange(false);
+    }
+    return;
+  }
+
+  // Suffix-based extraction:
+  // e.g. 'siNTC_60nM' -> suffix '_60nM'
+  //      'siNTC-Thermo_60nM' -> suffix '-Thermo_60nM'
+  //      'siNTC-Thermo' -> suffix '-Thermo'
+  //      'siNTC-GS' -> suffix '-GS'
+  //      'siNTC' -> suffix ''
+  function extractNtcSuffix(ntcName){
+    const m = ntcName.match(/^(?:si)?ntc(.*)$/i);
+    return m ? m[1] : '';
+  }
+
+  // Build list of NTCs with suffixes, sorted by suffix length DESCENDING
+  // so longer/more specific suffixes match first (e.g. '-Thermo_60nM' before '_60nM')
+  const ntcSuffixList = selectedNtcList.map(n => ({
+    ntc: n,
+    suffix: extractNtcSuffix(n)
+  })).sort((a,b) => b.suffix.length - a.suffix.length);
+
+  // Generic fallback NTC (empty suffix, or 'mix'/'ctrl'/'control'/'mock', or defaultNtc)
+  const fallbackNtc = selectedNtcList.find(n => {
+    const s = extractNtcSuffix(n).toLowerCase();
+    return s === '' || /^[_\-\s]*(mix|ctrl|control|mock)$/i.test(s);
+  }) || defaultNtc || selectedNtcList[0];
+
+  sampleTreatments.forEach(s => {
+    const sLower = s.toLowerCase();
+    let matched = null;
+
+    for(const {ntc, suffix} of ntcSuffixList){
+      if(!suffix) continue;
+      const sfxLower = suffix.toLowerCase();
+      // Check if sample ends with this suffix
+      // e.g., 'siPTEN_60nM' ends with '_60nM'
+      //       'siFNIP1-Thermo_60nM' ends with '-thermo_60nM'
+      //       'siFNIP1-Thermo' ends with '-thermo'
+      if(sLower.endsWith(sfxLower)){
+        matched = ntc;
+        break;
+      }
+    }
+
+    ntcSampleMapping[s] = matched || fallbackNtc;
+  });
+
+  if(triggerUpdate){
+    renderMultiNtcUI(allTreatments);
+    onCfgChange(false);
+  }
+}
+
+function resetNtcSampleMapping(){
+  const defaultNtc = selectedNtcList[0] || '';
+  const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
+  const active = allMergedRows.filter(r => r.active && !isNaN(r.ct));
+  const allTreatments = [...new Set(active.map(r=>r.siRNA).map(treatmentOf))];
+  const sampleTreatments = allTreatments.filter(t => !selectedNtcList.includes(t));
+
+  sampleTreatments.forEach(s => { ntcSampleMapping[s] = defaultNtc; });
+  renderMultiNtcUI(allTreatments);
+  onCfgChange(false);
+}
+
+function onCfgChange(shouldScroll = false){
   const adv = document.getElementById('advancedSettingsWrap');
   if(adv && !adv.classList.contains('hidden')) renderCompletenessMatrix();
-  if(analysisResult) runAnalysis();
+  if(analysisResult) runAnalysis(shouldScroll);
 }
 
 function toggleAdvancedSettings(){
@@ -2155,7 +3014,7 @@ function renderCompletenessMatrix(){
   const refGenes  = getSelectedReferenceGenes();
   const refGenesLower = new Set(refGenes.map(g => g.toLowerCase()));
   const refGeneLabel = refGenes.join(', ');
-  const ntcVal    = document.getElementById('ntcSelect').value;
+  const ntcVal    = selectedNtcList[0] || '';
   const bodyEl    = document.getElementById('completenessMatrixBody');
   if(!bodyEl) return;
   const allMergedRows = isMultiPlate ? multiPlateMergedRows.flat() : mergedRows;
@@ -2175,7 +3034,7 @@ function renderCompletenessMatrix(){
 
   const allSamples      = [...new Set(active.map(r=>r.siRNA))];
   const allTreatments   = [...new Set(allSamples.map(treatmentOf))];
-  const ntcTreatments   = [ntcVal];
+  const ntcTreatments   = (selectedNtcList && selectedNtcList.length) ? selectedNtcList : [ntcVal];
   const sirnaTreatments = allTreatments.filter(t => !ntcTreatments.includes(t)).sort();
   const targetPrimers   = [...new Set(active.map(r=>r.primer))]
     .filter(p => !refGenesLower.has(p.toLowerCase()))
@@ -2190,8 +3049,10 @@ function renderCompletenessMatrix(){
   function checkCell(treatment, target){
     const tgtLow   = target.toLowerCase();
     const bioReps  = allSamples.filter(s => treatmentOf(s)===treatment);
-    const has_ntc_target = ntcSamples.some(n => hasCT[n]?.[tgtLow]);
-    const has_ntc_hk     = ntcSamples.some(n => refGenes.some(refGene => hasCT[n]?.[refGene.toLowerCase()]));
+    const assignedNtc = ntcSampleMapping[treatment] || ntcVal;
+    const pairedNtcSamples = allSamples.filter(s => treatmentOf(s) === assignedNtc);
+    const has_ntc_target = (pairedNtcSamples.length ? pairedNtcSamples : ntcSamples).some(n => hasCT[n]?.[tgtLow]);
+    const has_ntc_hk     = (pairedNtcSamples.length ? pairedNtcSamples : ntcSamples).some(n => refGenes.some(refGene => hasCT[n]?.[refGene.toLowerCase()]));
     let complete=0, total=0, tipParts=[];
     bioReps.forEach(sirna => {
       const has_sirna_target = hasCT[sirna]?.[tgtLow]  ?? false;
@@ -2201,17 +3062,17 @@ function renderCompletenessMatrix(){
       if(!has_sirna_target) tipParts.push(sirna+'+'+target);
       if(!has_sirna_hk)     tipParts.push(`${sirna}+HK (${refGeneLabel})`);
     });
-    if(!has_ntc_target) tipParts.push('siNTC+'+target);
-    if(!has_ntc_hk)     tipParts.push(`siNTC+HK (${refGeneLabel})`);
+    if(!has_ntc_target) tipParts.push(assignedNtc+'+'+target);
+    if(!has_ntc_hk)     tipParts.push(`${assignedNtc}+HK (${refGeneLabel})`);
     const tip = tipParts.length ? 'Missing: '+[...new Set(tipParts)].slice(0,6).join(', ') : 'All present';
     return {complete, total, tip};
   }
 
   let html = '<table class="comp-matrix"><thead><tr><th class="cm-corner"></th>';
-  targetPrimers.forEach(p => { html += `<th class="cm-col-hdr">${p}</th>`; });
+  targetPrimers.forEach(p => { html += `<th class="cm-col-hdr">${esc(p)}</th>`; });
   html += '</tr></thead><tbody>';
   sirnaTreatments.forEach(treatment => {
-    html += `<tr><td class="cm-row-label">${treatment}</td>`;
+    html += `<tr><td class="cm-row-label">${esc(treatment)}</td>`;
     targetPrimers.forEach(target => {
       const {complete, total, tip} = checkCell(treatment, target);
       let cls, score;
@@ -2219,7 +3080,7 @@ function renderCompletenessMatrix(){
       else if(complete===total){ cls='cm-full'; score=`${complete}/${total}`; }
       else if(complete===0){ cls='cm-none'; score=`0/${total}`; }
       else { cls='cm-partial'; score=`${complete}/${total}`; }
-      html += `<td class="cm-cell ${cls}" title="${tip}">${score}</td>`;
+      html += `<td class="cm-cell ${cls}" title="${esc(tip)}">${score}</td>`;
     });
     html += '</tr>';
   });
@@ -2277,27 +3138,11 @@ function updateOmitMeta(){
 
 /* Build averaged tech-rep map from a set of active rows */
 function buildTechMap(activeRows){
-  const techMap = {};
-  activeRows.forEach(r => {
-    const k = r.siRNA + '\x00' + r.primer;
-    if(!techMap[k]) techMap[k] = {siRNA:r.siRNA, primer:r.primer, cts:[], wells:[]};
-    techMap[k].cts.push(r.ct);
-    techMap[k].wells.push(r.well);
-  });
-  const avgCt = {}, avgWells = {}, rawCts = {};
-  Object.values(techMap).forEach(({siRNA, primer, cts, wells}) => {
-    if(!avgCt[siRNA])    avgCt[siRNA]    = {};
-    if(!avgWells[siRNA]) avgWells[siRNA] = {};
-    if(!rawCts[siRNA])   rawCts[siRNA]   = {};
-    avgCt[siRNA][primer] = cts.reduce((a,b)=>a+b,0)/cts.length;
-    const pairs = wells.map((w,i)=>[w||'',cts[i]]);
-    const seen = new Set();
-    const uniq = pairs.filter(([w])=>{ if(seen.has(w)) return false; seen.add(w); return true; });
-    uniq.sort((a,b)=>a[0].localeCompare(b[0]));
-    avgWells[siRNA][primer] = uniq.map(([w])=>w).filter(Boolean).join(';');
-    rawCts[siRNA][primer]   = uniq.map(([,c])=>Number.isFinite(c)?c.toFixed(2):'N/A').join(';');
-  });
-  return {avgCt, avgWells, rawCts};
+  return analysisCore.buildTechMap(activeRows);
+}
+
+function geometricMeanSe(values, geometricMean){
+  return analysisCore.geometricMeanSe(values, geometricMean);
 }
 
 /*
@@ -2315,168 +3160,76 @@ function buildTechMap(activeRows){
  *   other plates as overrideNtcMean.
  */
 function computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenesLower, overrideNtcMean, plateLabel){
-  const {avgCt, avgWells, rawCts} = techData;
-  const refGeneLower = refGeneInput.toLowerCase();
-
-  /* Step 2: ΔCt */
-  const deltaCt = {};
-  Object.entries(avgCt).forEach(([siRNA, primers]) => {
-    const refKey = Object.keys(primers).find(p => p.toLowerCase()===refGeneLower);
-    if(!refKey) return;
-    const refCt = primers[refKey];
-    deltaCt[siRNA] = {};
-    Object.entries(primers).forEach(([primer, tgtCt]) => {
-      if(refGenesLower.has(primer.toLowerCase())) return;
-      deltaCt[siRNA][primer] = tgtCt - refCt;
-    });
+  return analysisCore.computePerPlateAnalysis(refGeneInput, techData, ntcTreatments, refGenesLower, overrideNtcMean, plateLabel, {
+    ntcSampleMapping,
+    sampleToGroup,
+    defaultNtc:document.getElementById('ntcSelect')?.value || ntcTreatments[0] || ''
   });
+}
 
-  /* Step 3: NTC mean ΔCt */
-  let ntcMean;
-  if(overrideNtcMean){
-    ntcMean = overrideNtcMean;
+function showMissingNtcBaselineWarning(missingBaselines){
+  const el = document.getElementById('cfgAutoMsg');
+  if(!el) return;
+  const unique = [...new Map(missingBaselines.map(item => [
+    `${item.plate||''}\x00${item.ntc}\x00${item.primer}\x00${item.refGene}`, item
+  ])).values()];
+  if(!unique.length){
+    el.textContent = '';
+    el.style.display = 'none';
+    el.className = 'alert alert-info';
+    return;
+  }
+  const examples = unique.slice(0,6).map(item =>
+    `${item.plate ? `${item.plate}: ` : ''}${item.ntc} / ${item.primer} / ${item.refGene}`
+  ).join('; ');
+  const remaining = unique.length - 6;
+  el.className = 'alert alert-warning';
+  el.textContent = `Skipped results with missing matching NTC baseline (${unique.length}): ${examples}${remaining > 0 ? `; and ${remaining} more` : ''}`;
+  el.style.display = 'block';
+}
+
+function showTechnicalReplicateWarnings(omittedWells){
+  const el = document.getElementById('cfgQualityWarning');
+  if(!el) return;
+  const threshold = Number(document.getElementById('techRepCtRange')?.value ?? 1);
+  const warnings = [];
+  if(isMultiPlate){
+    const omittedByPlate = parseOmittedWells(omittedWells);
+    const plateNumbers = getDistinctPlateNumbers();
+    multiPlateMergedRows.forEach((rows,index)=>{
+      const omitted = omittedByPlate[index] || new Set();
+      const active = rows.filter(row=>row.active&&Number.isFinite(row.ct)&&!omitted.has(row.well));
+      warnings.push(...analysisCore.getTechnicalReplicateWarnings(active,threshold,`P${plateNumbers[index]??(index+1)}`));
+    });
   } else {
-    const ntcPool = {};
-    Object.entries(deltaCt).forEach(([siRNA, primers]) => {
-      if(!ntcTreatments.includes(treatmentOf(siRNA))) return;
-      Object.entries(primers).forEach(([primer, dct]) => {
-        if(!ntcPool[primer]) ntcPool[primer] = [];
-        ntcPool[primer].push(dct);
-      });
-    });
-    ntcMean = {};
-    Object.entries(ntcPool).forEach(([primer, vals]) => {
-      ntcMean[primer] = vals.reduce((a,b)=>a+b,0)/vals.length;
-    });
+    const active = mergedRows.filter(row=>row.active&&Number.isFinite(row.ct)&&!omittedWells.has(row.well));
+    warnings.push(...analysisCore.getTechnicalReplicateWarnings(active,threshold));
   }
-
-  /* Step 4: ΔΔCt → relExp */
-  const allTreatments = [...new Set(Object.keys(deltaCt).map(treatmentOf))];
-  const nonNTC = allTreatments.filter(t => !ntcTreatments.includes(t)).sort();
-  const ntcOnly = allTreatments.filter(t =>  ntcTreatments.includes(t)).sort();
-  const kdResults = [], detailRows = [], ntcResults = [];
-
-  function computeGroup(treatment, targetArr){
-    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
-    const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s]||{})))];
-    primers.forEach(primer => {
-      const ntcRef = ntcMean[primer];
-      if(ntcRef===undefined) return;
-      const relExps = [], repWells = [], repBioReps = [];
-      bioReps.forEach(siRNA => {
-        const dct = deltaCt[siRNA]?.[primer];
-        if(dct===undefined) return;
-        relExps.push(Math.pow(2,-(dct - ntcRef)));
-        repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
-        repBioReps.push(siRNA);
-      });
-      if(!relExps.length) return;
-      const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
-      const meanRE   = Math.pow(2, meanLog2);
-      const seRE     = relExps.length>1
-        ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
-        : NaN;
-      const pl = plateLabel ? {plate:plateLabel} : {};
-      targetArr.push({siRNA:treatment, primer, meanRE, seRE,
-        refGene:refGeneInput, ...pl,
-        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
-        repWells, repBioReps});
-    });
+  if(!warnings.length){
+    el.textContent='';
+    el.style.display='none';
+    return;
   }
-
-  const pl = plateLabel ? {plate:plateLabel} : {};
-
-  nonNTC.forEach(treatment => {
-    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
-    const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s]||{})))];
-    const addedRefRows = new Set();
-    primers.forEach(primer => {
-      const ntcRef = ntcMean[primer];
-      if(ntcRef===undefined) return;
-      const relExps = [], repWells = [], repBioReps = [];
-      bioReps.forEach(siRNA => {
-        const refKey = Object.keys(avgCt[siRNA]||{}).find(p => p.toLowerCase()===refGeneLower);
-        const refCt  = refKey ? avgCt[siRNA]?.[refKey] : undefined;
-        if(refKey && !addedRefRows.has(siRNA)){
-          detailRows.push({
-            ...pl,
-            row_type:'ref_gene', treatment,
-            bio_rep:siRNA, well:avgWells[siRNA]?.[refKey]||'N/A', raw_ct:rawCts[siRNA]?.[refKey]||'N/A',
-            primer:refKey, ref_gene:'',
-            ct_ref_mean:'', ct_target_mean:'',
-            dct:'', ntc_mean_dct:'', ddct:'', rel_exp:'', kd_pct:''
-          });
-          addedRefRows.add(siRNA);
-        }
-        const dct = deltaCt[siRNA]?.[primer];
-        if(dct===undefined) return;
-        const ddct   = dct - ntcRef;
-        const relExp = Math.pow(2,-ddct);
-        relExps.push(relExp);
-        repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
-        repBioReps.push(siRNA);
-        detailRows.push({
-          ...pl,
-          row_type:'target_gene', treatment,
-          bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
-          primer, ref_gene:refKey||refGeneInput,
-          ct_ref_mean:fmt(refCt), ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
-          dct:dct.toFixed(3), ntc_mean_dct:ntcRef.toFixed(3),
-          ddct:ddct.toFixed(3), rel_exp:relExp.toFixed(4), kd_pct:((1-relExp)*100).toFixed(1)
-        });
-      });
-      if(!relExps.length) return;
-      const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
-      const meanRE   = Math.pow(2, meanLog2);
-      const seRE     = relExps.length>1
-        ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
-        : NaN;
-      kdResults.push({...pl, siRNA:treatment, primer, meanRE, seRE,
-        refGene:refGeneInput,
-        kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
-        repWells, repBioReps});
-    });
-  });
-
-  ntcOnly.forEach(treatment => {
-    computeGroup(treatment, ntcResults);
-    const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
-    bioReps.forEach(siRNA => {
-      Object.keys(deltaCt[siRNA]||{}).forEach(primer => {
-        const dct    = deltaCt[siRNA][primer];
-        const ntcRef = ntcMean[primer];
-        if(ntcRef===undefined) return;
-        const ddct   = dct - ntcRef;
-        const relExp = Math.pow(2,-ddct);
-        const ntcRefKey = Object.keys(avgCt[siRNA]||{}).find(p=>p.toLowerCase()===refGeneLower);
-        const ntcRefCt  = ntcRefKey ? avgCt[siRNA][ntcRefKey] : undefined;
-        detailRows.push({
-          ...pl,
-          row_type:'ref_sample', treatment,
-          bio_rep:siRNA, well:avgWells[siRNA]?.[primer]||'N/A', raw_ct:rawCts[siRNA]?.[primer]||'N/A',
-          primer, ref_gene:ntcRefKey||refGeneInput,
-          ct_ref_mean:fmt(ntcRefCt), ct_target_mean:fmt(avgCt[siRNA]?.[primer]),
-          dct:dct.toFixed(3), ntc_mean_dct:ntcRef.toFixed(3),
-          ddct:ddct.toFixed(3), rel_exp:relExp.toFixed(4), kd_pct:((1-relExp)*100).toFixed(1)
-        });
-      });
-    });
-  });
-
-  return {refGene:refGeneInput, kdResults, ntcResults, detailRows, ntcMean};
+  const examples = warnings.slice(0,6).map(item=>
+    `${item.plate ? `${item.plate} ` : ''}${item.siRNA} / ${item.primer}: range ${item.range.toFixed(2)} Ct`
+  ).join('; ');
+  el.textContent=`${warnings.length} technical-replicate group(s) exceed the ${threshold.toFixed(1)} Ct range warning threshold: ${examples}${warnings.length>6?`; and ${warnings.length-6} more`:''}. No wells were removed.`;
+  el.style.display='block';
 }
 
 /* ═══════════════════════════════════════════════════════
    ANALYSIS
 ═══════════════════════════════════════════════════════ */
-function runAnalysis(){
+function runAnalysis(shouldScroll = false){
+  showMissingNtcBaselineWarning([]);
   const refGenesInput = getSelectedReferenceGenes();
-  const ntcVal        = document.getElementById('ntcSelect').value;
-  const ntcTreatments = ntcVal ? [ntcVal] : [];
+  const ntcTreatments = (selectedNtcList && selectedNtcList.length) ? [...selectedNtcList] : [];
   const omittedWells  = new Set([...document.querySelectorAll('#omitGrid input.omit-chk:checked')].map(c=>c.value));
   if(!refGenesInput.length){ showInlineErr('cfgRefErr','Please select at least one reference gene'); return; }
   if(!ntcTreatments.length){ showInlineErr('cfgNtcErr','Select a siNTC condition'); return; }
   clearInlineErr('cfgRefErr'); clearInlineErr('cfgNtcErr'); clearInlineErr('cfgRunErr');
+  resultViewAutoSelected=false;
+  showTechnicalReplicateWarnings(omittedWells);
 
   const refGenesLower = new Set(refGenesInput.map(g => g.toLowerCase()));
 
@@ -2500,14 +3253,14 @@ function runAnalysis(){
       return {plateIdx, label, techData: buildTechMap(active)};
     });
 
-    // Global NTC: compute reference plate's ntcMean first
+    // Global NTC: compute reference plate's ntcMeanMap first
     let overrideNtcMeanByRefGene = null;
     if(ntcMode === 'global'){
       overrideNtcMeanByRefGene = {};
       const refPlateData = plateTechData[globalNtcPlateIdx] || plateTechData[0];
       refGenesInput.forEach(rg => {
         const rv = computePerPlateAnalysis(rg, refPlateData.techData, ntcTreatments, refGenesLower, null, refPlateData.label);
-        overrideNtcMeanByRefGene[rg] = rv.ntcMean;
+        overrideNtcMeanByRefGene[rg] = rv.ntcMeanMap;
       });
     }
 
@@ -2518,10 +3271,13 @@ function runAnalysis(){
         const override = (ntcMode === 'global' && overrideNtcMeanByRefGene)
           ? overrideNtcMeanByRefGene[rg] : null;
         const view = computePerPlateAnalysis(rg, techData, ntcTreatments, refGenesLower, override, label);
-        if(view.kdResults.length || view.ntcResults.length) perRefGene[rg] = view;
+        perRefGene[rg] = view;
       });
       return {plateIdx, label, perRefGene};
     });
+    showMissingNtcBaselineWarning(allPlateResults.flatMap(({perRefGene}) =>
+      Object.values(perRefGene).flatMap(view => view.missingNtcBaselines || [])
+    ));
 
     let mergedPerRefGene;
     const allPlateLabels = allPlatesData.map(p => p.label);
@@ -2536,6 +3292,10 @@ function runAnalysis(){
     if(!availableRefGenes.length){
       showInlineErr('cfgRunErr','No results — check reference gene and NTC selection'); return;
     }
+    const plateModes=Object.fromEntries(allPlateResults.map(({label,perRefGene})=>{
+      const plateView=perRefGene[refGenesInput[0]]||Object.values(perRefGene)[0];
+      return [label,getRequestedPlateMode(label,plateView?.kdResults||[])];
+    }));
 
     currentResultRefGene = availableRefGenes[0];
     analysisResult = {
@@ -2545,220 +3305,37 @@ function runAnalysis(){
       ntcTreatments,
       omittedWells: [...omittedWells],
       isPerPlate: ntcMode === 'per-plate' && isMultiPlate,
-      allPlateLabels
+      allPlateLabels,
+      plateModes
     };
     syncCurrentAnalysisView();
     document.getElementById('card4').classList.remove('hidden');
     setStep(4);
-    document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+    if(shouldScroll){
+      document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+    }
     renderActiveAnalysisView();
     return;
   }
 
-  /* ── SINGLE-PLATE PATH (original code, unchanged) ── */
+  /* ── SINGLE-PLATE PATH (routed through computePerPlateAnalysis for consistency) ── */
   const active = mergedRows.filter(r => r.active && !isNaN(r.ct) && !omittedWells.has(r.well));
-
-  /* Step 1 – Average tech-reps:
-     Same sample name (siRNA column) × same primer = technical replicates → average CT.
-     avgCt[sampleName][primer] = mean CT */
-  const techMap = {};
-  active.forEach(r => {
-    const k = r.siRNA + '\x00' + r.primer;
-    if(!techMap[k]) techMap[k] = {siRNA:r.siRNA, primer:r.primer, cts:[], wells:[]};
-    techMap[k].cts.push(r.ct);
-    techMap[k].wells.push(r.well);
-  });
-  const avgCt = {};
-  const avgWells = {};
-  const rawCts = {};
-  Object.values(techMap).forEach(({siRNA, primer, cts, wells}) => {
-    if(!avgCt[siRNA]) avgCt[siRNA] = {};
-    if(!avgWells[siRNA]) avgWells[siRNA] = {};
-    if(!rawCts[siRNA]) rawCts[siRNA] = {};
-    avgCt[siRNA][primer] = cts.reduce((a,b)=>a+b,0)/cts.length;
-    // Pair wells+cts, dedup by well, sort by well name for consistent 1-to-1 ordering
-    const pairs = wells.map((w,i)=>[w||'',cts[i]]);
-    const seen = new Set();
-    const uniq = pairs.filter(([w])=>{ if(seen.has(w)) return false; seen.add(w); return true; });
-    uniq.sort((a,b)=>a[0].localeCompare(b[0]));
-    avgWells[siRNA][primer] = uniq.map(([w])=>w).filter(Boolean).join(';');
-    rawCts[siRNA][primer]   = uniq.map(([,c])=>Number.isFinite(c)?c.toFixed(2):'N/A').join(';');
-  });
-
-  function computeAnalysisForRefGene(refGeneInput){
-    const refGeneLower = refGeneInput.toLowerCase();
-
-    /* Step 2 – ΔCt per bio-rep (each unique sample name), ref-gene aligned by sample name */
-    const deltaCt = {};
-    Object.entries(avgCt).forEach(([siRNA, primers]) => {
-      const refKey = Object.keys(primers).find(p => p.toLowerCase()===refGeneLower);
-      if(!refKey) return;
-      const refCt = primers[refKey];
-      deltaCt[siRNA] = {};
-      Object.entries(primers).forEach(([primer, tgtCt]) => {
-        if(refGenesLower.has(primer.toLowerCase())) return;
-        deltaCt[siRNA][primer] = tgtCt - refCt;
-      });
-    });
-
-    /* Step 3 – NTC mean ΔCt per primer (pool all bio-reps belonging to NTC treatments) */
-    const ntcPool = {};
-    Object.entries(deltaCt).forEach(([siRNA, primers]) => {
-      if(!ntcTreatments.includes(treatmentOf(siRNA))) return;
-      Object.entries(primers).forEach(([primer, dct]) => {
-        if(!ntcPool[primer]) ntcPool[primer] = [];
-        ntcPool[primer].push(dct);
-      });
-    });
-    const ntcMean = {};
-    Object.entries(ntcPool).forEach(([primer, vals]) => {
-      ntcMean[primer] = vals.reduce((a,b)=>a+b,0)/vals.length;
-    });
-
-    /* Step 4 – ΔΔCt → relExp per bio-rep; group by treatment for mean/SE */
-    const allTreatments = [...new Set(Object.keys(deltaCt).map(treatmentOf))];
-    const nonNTC = allTreatments.filter(t => !ntcTreatments.includes(t)).sort();
-    const ntcOnly = allTreatments.filter(t => ntcTreatments.includes(t)).sort();
-    const kdResults = [], detailRows = [], ntcResults = [];
-
-    function computeGroup(treatment, targetArr){
-      const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
-      const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s] || {})))];
-      primers.forEach(primer => {
-        const ntcRef = ntcMean[primer];
-        if(ntcRef===undefined) return;
-        const relExps = [], repWells = [], repBioReps = [];
-        bioReps.forEach(siRNA => {
-          const dct = deltaCt[siRNA]?.[primer];
-          if(dct===undefined) return;
-          relExps.push(Math.pow(2,-(dct - ntcRef)));
-          repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
-          repBioReps.push(siRNA);
-        });
-        if(!relExps.length) return;
-        const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
-        const meanRE = Math.pow(2, meanLog2); // geometric mean: 2^(mean_log2) = 2^(-mean_ΔΔCt)
-        const seRE = relExps.length>1
-          ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
-          : NaN;
-        targetArr.push({siRNA:treatment, primer, meanRE, seRE,
-          refGene:refGeneInput,
-          kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
-          repWells, repBioReps});
-      });
-    }
-
-    nonNTC.forEach(treatment => {
-      const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
-      const primers = [...new Set(bioReps.flatMap(s => Object.keys(deltaCt[s] || {})))];
-      const addedRefRows = new Set();
-      primers.forEach(primer => {
-        const ntcRef = ntcMean[primer];
-        if(ntcRef===undefined) return;
-        const relExps = [], repWells = [], repBioReps = [];
-        bioReps.forEach(siRNA => {
-          const refKey = Object.keys(avgCt[siRNA] || {}).find(p => p.toLowerCase()===refGeneLower);
-          const refCt = refKey ? avgCt[siRNA]?.[refKey] : undefined;
-          if(refKey && !addedRefRows.has(siRNA)){
-            detailRows.push({
-              row_type:       'ref_gene',
-              treatment,
-              bio_rep:        siRNA,
-              well:           avgWells[siRNA]?.[refKey] || 'N/A',
-              raw_ct:         rawCts[siRNA]?.[refKey]   || 'N/A',
-              primer:         refKey,
-              ref_gene: '',
-              ct_ref_mean:    '',
-              ct_target_mean: '',
-              dct:            '',
-              ntc_mean_dct:   '',
-              ddct:           '',
-              rel_exp:        '',
-              kd_pct:         ''
-            });
-            addedRefRows.add(siRNA);
-          }
-          const dct = deltaCt[siRNA]?.[primer];
-          if(dct===undefined) return;
-          const ddct = dct - ntcRef;
-          const relExp = Math.pow(2,-ddct);
-          relExps.push(relExp);
-          repWells.push(avgWells[siRNA]?.[primer] || 'N/A');
-          repBioReps.push(siRNA);
-          detailRows.push({
-            row_type:       'target_gene',
-            treatment,
-            bio_rep:        siRNA,
-            well:           avgWells[siRNA]?.[primer] || 'N/A',
-            raw_ct:         rawCts[siRNA]?.[primer]   || 'N/A',
-            primer,
-            ref_gene: refKey || refGeneInput,
-            ct_ref_mean:    fmt(refCt),
-            ct_target_mean: fmt(avgCt[siRNA]?.[primer]),
-            dct:            dct.toFixed(3),
-            ntc_mean_dct:   ntcRef.toFixed(3),
-            ddct:           ddct.toFixed(3),
-            rel_exp:        relExp.toFixed(4),
-            kd_pct:         ((1-relExp)*100).toFixed(1)
-          });
-        });
-        if(!relExps.length) return;
-        const meanLog2 = relExps.reduce((s,v)=>s+Math.log2(v),0)/relExps.length;
-        const meanRE = Math.pow(2, meanLog2); // geometric mean: 2^(mean_log2) = 2^(-mean_ΔΔCt)
-        const seRE = relExps.length>1
-          ? Math.sqrt(relExps.reduce((sum,v)=>sum+(v-meanRE)**2,0)/(relExps.length-1)/relExps.length)
-          : NaN;
-        kdResults.push({siRNA:treatment, primer, meanRE, seRE,
-          refGene:refGeneInput,
-          kd:(1-meanRE)*100, kdSe:isNaN(seRE)?NaN:seRE*100, n:relExps.length, reps:relExps,
-          repWells, repBioReps});
-      });
-    });
-    ntcOnly.forEach(treatment => {
-      computeGroup(treatment, ntcResults);
-      // Also push siNTC detail rows (ref-related fields left empty per user request)
-      const bioReps = Object.keys(deltaCt).filter(s => treatmentOf(s)===treatment).sort();
-      bioReps.forEach(siRNA => {
-        const primers = Object.keys(deltaCt[siRNA] || {});
-        primers.forEach(primer => {
-          const dct = deltaCt[siRNA]?.[primer];
-          if(dct===undefined) return;
-          const ntcRef = ntcMean[primer];
-          if(ntcRef===undefined) return;
-          const ddct = dct - ntcRef;
-          const relExp = Math.pow(2,-ddct);
-          const ntcRefKey2 = Object.keys(avgCt[siRNA]||{}).find(p=>p.toLowerCase()===refGeneLower);
-          const ntcRefCt2  = ntcRefKey2 ? avgCt[siRNA][ntcRefKey2] : undefined;
-          detailRows.push({
-            row_type:       'ref_sample',
-            treatment,
-            bio_rep:        siRNA,
-            well:           avgWells[siRNA]?.[primer] || 'N/A',
-            raw_ct:         rawCts[siRNA]?.[primer]   || 'N/A',
-            primer,
-            ref_gene: ntcRefKey2||refGeneInput,
-            ct_ref_mean:    fmt(ntcRefCt2),
-            ct_target_mean: fmt(avgCt[siRNA]?.[primer]),
-            dct:            dct.toFixed(3),
-            ntc_mean_dct:   ntcRef.toFixed(3),
-            ddct:           ddct.toFixed(3),
-            rel_exp:        relExp.toFixed(4),
-            kd_pct:         ((1-relExp)*100).toFixed(1)
-          });
-        });
-      });
-    });
-    return {refGene:refGeneInput, kdResults, ntcResults, detailRows};
-  }
+  const singlePlateTechData = buildTechMap(active);
 
   const perRefGene = {};
+  const computedViews = [];
   refGenesInput.forEach(refGeneInput => {
-    const view = computeAnalysisForRefGene(refGeneInput);
-    if(view.kdResults.length) perRefGene[refGeneInput] = view;
+    const view = computePerPlateAnalysis(refGeneInput, singlePlateTechData, ntcTreatments, refGenesLower, null, null);
+    computedViews.push(view);
+    if(view.kdResults.length || view.ntcResults.length) perRefGene[refGeneInput] = view;
   });
+  showMissingNtcBaselineWarning(computedViews.flatMap(view => view.missingNtcBaselines || []));
 
   const availableRefGenes = Object.keys(perRefGene);
   if(!availableRefGenes.length){ showInlineErr('cfgRunErr','No results — check reference gene and NTC selection'); return; }
+  const singlePlateLabel=`P${getDistinctPlateNumbers()[0]||1}`;
+  const singleRows=perRefGene[refGenesInput[0]]?.kdResults||Object.values(perRefGene)[0]?.kdResults||[];
+  const plateModes={[singlePlateLabel]:getRequestedPlateMode(singlePlateLabel,singleRows)};
 
   currentResultRefGene = availableRefGenes[0];
   analysisResult={
@@ -2766,13 +3343,17 @@ function runAnalysis(){
     refGenes:availableRefGenes,
     currentRefGene:currentResultRefGene,
     ntcTreatments,
-    omittedWells:[...omittedWells]
+    omittedWells:[...omittedWells],
+    singlePlateLabel,
+    plateModes
   };
   syncCurrentAnalysisView();
 
   document.getElementById('card4').classList.remove('hidden');
   setStep(4);
-  document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+  if(shouldScroll){
+    document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+  }
   renderActiveAnalysisView();
 }
 
@@ -2832,15 +3413,15 @@ function mergeMultiPlateResults(allPlateResults, refGenesInput){
       const needsSuffix = (siRNA, primer) => (keyCountByRg[rg][siRNA + '\x00' + primer] || 0) > 1;
 
       view.kdResults.forEach(r => {
-        const rc = {...r};
+        const rc = {...r,sourcePlate:label};
         if(needsSuffix(r.siRNA, r.primer)) rc.siRNA = `${r.siRNA} (${label})`;
         allKd.push(rc);
       });
       view.ntcResults.forEach(r => {
-        allNtc.push({...r}); // NTC is never suffixed (it's per-plate by design)
+        allNtc.push({...r,sourcePlate:label}); // NTC is never suffixed (it's per-plate by design)
       });
       view.detailRows.forEach(r => {
-        const rc = {...r};
+        const rc = {...r,sourcePlate:label};
         if(needsSuffix(r.treatment, r.primer)){
           rc.treatment = `${r.treatment} (${label})`;
           // Also update bio_rep display if it echoes the siRNA name
@@ -2881,20 +3462,72 @@ function mergeMultiPlateResultsPerPlate(allPlateResults, refGenesInput){
 ═══════════════════════════════════════════════════════ */
 let _kdTableData = [];
 function _rerenderKDTable(){ renderKDTable(_kdTableData); }
+function getExpressionDirectionColors(mean){
+  const value=Number(mean);
+  if(!Number.isFinite(value)||value<=0||value===1) return null;
+  const log2Fc=Math.log2(value);
+  const strength=Math.min(Math.abs(log2Fc),2)/2;
+  const alpha=(0.1+strength*0.62).toFixed(2);
+  return log2Fc>0
+    ? {background:`rgba(220,53,69,${alpha})`,foreground:'#7f1d1d'}
+    : {background:`rgba(13,110,253,${alpha})`,foreground:'#123b74'};
+}
+
+function renderExpressionMatrix(rows){
+  const table = document.getElementById('fcMatrixTable');
+  if(!table) return;
+  if(!rows.length){
+    table.innerHTML='<tbody><tr><td>No expression data</td></tr></tbody>';
+    return;
+  }
+
+  const targets=[...new Set(rows.map(row=>String(row.primer||'')))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+  const hasPlate=rows.some(row=>row.plate||row.sourcePlate);
+  const samples=new Map();
+  rows.forEach(row=>{
+    const sample=String(row.siRNA||'');
+    const plate=hasPlate?String(row.plate||row.sourcePlate||''):'';
+    const key=JSON.stringify([sample,plate]);
+    if(!samples.has(key)) samples.set(key,{sample,plate,byTarget:new Map()});
+    samples.get(key).byTarget.set(String(row.primer||''),row);
+  });
+
+  const orderedSamples=[...samples.values()].sort((a,b)=>a.sample.localeCompare(b.sample,undefined,{numeric:true,sensitivity:'base'})||a.plate.localeCompare(b.plate,undefined,{numeric:true,sensitivity:'base'}));
+  const headers=['Sample',...(hasPlate?['Plate']:[]),...targets];
+  let html=`<thead><tr>${headers.map(header=>`<th>${esc(header)}</th>`).join('')}</tr></thead><tbody>`;
+  orderedSamples.forEach(sample=>{
+    html+=`<tr><th scope="row">${esc(sample.sample)}</th>${hasPlate?`<td>${esc(sample.plate)}</td>`:''}`;
+    targets.forEach(target=>{
+      const result=sample.byTarget.get(target);
+      if(!result){ html+='<td>—</td>'; return; }
+      const mean=Number(result.meanRE);
+      const se=Number(result.seRE);
+      const reps=(result.reps||[]).map(value=>Number(value).toFixed(3)).join(', ');
+      const title=reps?`Bio-rep FC values: ${reps}`:'';
+      const directionColors=getExpressionDirectionColors(mean);
+      const directionStyle=directionColors?`background:${directionColors.background};color:${directionColors.foreground}`:'';
+      html+=`<td style="text-align:center;white-space:nowrap;${directionStyle}"${title?` title="${esc(title)}"`:''}><strong>${Number.isFinite(mean)?mean.toFixed(3):'N/A'}</strong><small style="display:block;color:inherit;opacity:.75">± ${Number.isFinite(se)?se.toFixed(3):'N/A'} SE · n=${Number(result.n)||0}</small></td>`;
+    });
+    html+='</tr>';
+  });
+  table.innerHTML=html+'</tbody>';
+}
+
 function renderKDTable(kd){
   _kdTableData = kd;
   const TID = 'kdTable';
   const s = _tblSort[TID] || {col:'', dir:'asc'};
-  const hasPlate = kd.some(r => r.plate);
+  const hasPlate = kd.some(r => r.plate||r.sourcePlate);
+  const hasNtcRef = selectedNtcList.length > 1 || new Set(kd.map(r => r.ntcRefName).filter(Boolean)).size > 1;
   // Enrich with computed sort keys
   const enriched = kd.map(r => {
     let grade; if(r.kd<0) grade='Overexpression'; else if(r.kd>=70) grade='High'; else if(r.kd>=40) grade='Medium'; else grade='Low';
-    return {...r, exprPct:r.meanRE*100, exprSePct:isNaN(r.seRE)?NaN:r.seRE*100, kdSe:r.kdSe, grade};
+    return {...r, exprPct:r.meanRE*100, exprSePct:isNaN(r.seRE)?NaN:r.seRE*100, kdSe:r.kdSe, grade, ntcRefName: r.ntcRefName || ''};
   });
   const defaultSorted = [...enriched].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
   const sorted = s.col ? _sortRows(defaultSorted, s.col, s.dir) : defaultSorted;
-  const COLS = [...(hasPlate?['plate']:[]), 'siRNA','primer','exprPct','exprSePct','kd','kdSe','n','grade'];
-  const LABELS = {siRNA:'siRNA',primer:'Target Primer',exprPct:'Expression (% of NTC)',exprSePct:'SE (%)',kd:'KD Efficiency',kdSe:'KD ± SE (%)',n:'N bio-reps',grade:'Grade',plate:'Plate'};
+  const COLS = [...(hasPlate?['plate']:[]), 'siRNA', ...(hasNtcRef?['ntcRefName']:[]), 'primer','exprPct','exprSePct','kd','kdSe','n','grade'];
+  const LABELS = {siRNA:'siRNA',ntcRefName:'Baseline NTC',primer:'Target Primer',exprPct:'Expression (% of NTC)',exprSePct:'SE (%)',kd:'KD Efficiency',kdSe:'KD ± SE (%)',n:'N bio-reps',grade:'Grade',plate:'Plate'};
   let html=`<thead><tr>${_thHtml(TID, COLS, LABELS)}</tr></thead><tbody>`;
   sorted.forEach(r => {
     let grade,cls;
@@ -2908,9 +3541,10 @@ function renderKDTable(kd){
     const exprSePct=r.seRE*100;
     const exprBarW=Math.min(Math.max(exprPct,0),100).toFixed(0);
     const exprBarC=exprPct>100?'#1d4ed8':exprPct<=30?'#34a853':exprPct<=60?'#ffa000':'#ea4335';
-    const plateCell = hasPlate ? `<td>${r.plate||''}</td>` : '';
+    const plateCell = hasPlate ? `<td>${r.plate||r.sourcePlate||''}</td>` : '';
+    const ntcRefCell = hasNtcRef ? `<td><span class="chip-ntc-badge">${esc(r.ntcRefName||'—')}</span></td>` : '';
     html+=`<tr>
-      ${plateCell}<td><strong>${r.siRNA}</strong></td><td>${r.primer}</td>
+      ${plateCell}<td><strong>${esc(r.siRNA)}</strong></td>${ntcRefCell}<td>${esc(r.primer)}</td>
       <td style="min-width:160px">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="min-width:58px;font-weight:700">${exprPct.toFixed(2)}%</span>
@@ -2951,14 +3585,33 @@ function renderDetailTable(rows){
   _populateDetailRowTypePanel(rowTypes);
 
   document.getElementById('detailSearch').value=detailViewState.search||'';
+  document.getElementById('detailExclude').value=detailViewState.exclude||'';
   refreshDetailTable();
 }
 
+function setDetailTableExpanded(expanded){
+  const tableWrap=document.querySelector('#tabDetail .detail-table-wrap');
+  const button=document.getElementById('detailTableExpandBtn');
+  if(!tableWrap||!button) return;
+  tableWrap.classList.toggle('detail-table-expanded',expanded);
+  button.textContent=expanded?'Collapse Table':'Expand Table';
+  button.setAttribute('aria-expanded',String(expanded));
+}
+function toggleDetailTableExpanded(){
+  const tableWrap=document.querySelector('#tabDetail .detail-table-wrap');
+  setDetailTableExpanded(!tableWrap?.classList.contains('detail-table-expanded'));
+}
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape') setDetailTableExpanded(false);
+});
+
 function resetDetailView(){
-  detailViewState={search:'',sortCol:'',sortDir:'asc'};
+  detailViewState={search:'',exclude:'',sortCol:'',sortDir:'asc'};
   _resetDetailRowTypePanel();
-  const rows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
-  if(rows) renderDetailTable(rows);
+  document.getElementById('detailSearch').value='';
+  document.getElementById('detailExclude').value='';
+  if(analysisResult) renderActiveAnalysisView();
+  else if(currentFilteredDetailRows) renderDetailTable(currentFilteredDetailRows);
 }
 
 function toggleDetailRowTypeDrop(e){
@@ -3043,7 +3696,9 @@ function refreshDetailTable(){
   const allRows=rows;
   const cols=Object.keys(allRows[0]);
   const searchEl=document.getElementById('detailSearch');
+  const excludeEl=document.getElementById('detailExclude');
   detailViewState.search=(searchEl?.value||'').trim();
+  detailViewState.exclude=(excludeEl?.value||'').trim();
   if(!detailViewState.sortCol||!cols.includes(detailViewState.sortCol)){
     detailViewState.sortCol=cols.includes('primer')?'primer':cols[0];
   }
@@ -3051,10 +3706,12 @@ function refreshDetailTable(){
   const selectedRowTypes=_getDetailRowTypes();
 
   const kw=detailViewState.search.toLowerCase();
+  const excludeTerms=detailViewState.exclude.toLowerCase().split(/[;,\n]+/).map(term=>term.trim()).filter(Boolean);
   let filtered=[...allRows].filter(r=>{
     if(selectedRowTypes!==null && !selectedRowTypes.has(String(r.row_type||'')))return false;
-    if(!kw)return true;
-    return cols.some(c=>String(r[c]??'').toLowerCase().includes(kw));
+    const matchesSearch=!kw||cols.some(c=>String(r[c]??'').toLowerCase().includes(kw));
+    if(!matchesSearch)return false;
+    return !excludeTerms.some(term=>cols.some(c=>String(r[c]??'').toLowerCase().includes(term)));
   });
 
   const sc=detailViewState.sortCol, sd=detailViewState.sortDir;
@@ -3076,90 +3733,142 @@ function refreshDetailTable(){
     const label=LABELS[c]||c;
     return `<th class="${cls}" onclick="sortDetailByCol('${c.replace(/'/g,"\\'")}')">${label}</th>`;
   }).join('')+'</tr></thead><tbody>';
-  filtered.forEach(r=>{ html+='<tr>'+DISPLAY_COLS.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>'; });
+  const formatCt=value=>String(value??'').split(';').map(part=>{
+    const text=part.trim();
+    const ct=Number(text);
+    return text&&Number.isFinite(ct)?ct.toFixed(3):text;
+  }).join(';');
+  const CT_COLS=new Set(['raw_ct','ct_target_mean','ct_ref_mean']);
+  filtered.forEach(r=>{ html+='<tr>'+DISPLAY_COLS.map(c=>`<td>${esc(CT_COLS.has(c)?formatCt(r[c]):r[c]??'')}</td>`).join('')+'</tr>'; });
   document.getElementById('detailTable').innerHTML=html+'</tbody>';
   document.getElementById('detailCount').textContent=`${filtered.length} / ${allRows.length} rows`;
 }
 
-function renderSummaryCards(kd){
-  const high=kd.filter(r=>r.kd>=70).length;
-  const mid =kd.filter(r=>r.kd>=40&&r.kd<70).length;
-  const low =kd.filter(r=>r.kd>=0&&r.kd<40).length;
-  const over=kd.filter(r=>r.kd<0).length;
-  const genes=[...new Set(kd.map(r=>r.primer))].length;
+function renderSummaryCards(kd,expressionMode=false){
+  if(!expressionMode){
+    const high=kd.filter(r=>r.kd>=70).length;
+    const mid =kd.filter(r=>r.kd>=40&&r.kd<70).length;
+    const low =kd.filter(r=>r.kd>=0&&r.kd<40).length;
+    const over=kd.filter(r=>r.kd<0).length;
+    const genes=[...new Set(kd.map(r=>r.primer))].length;
+    document.getElementById('summaryCards').innerHTML=`
+      <div class="s-card"><div class="s-num">${kd.length}</div><div class="s-lbl">siRNAs analysed</div></div>
+      <div class="s-card"><div class="s-num" style="color:#34a853">${high}</div><div class="s-lbl">High KD ≥70%</div></div>
+      <div class="s-card"><div class="s-num" style="color:#ffa000">${mid}</div><div class="s-lbl">Medium KD 40–70%</div></div>
+      <div class="s-card"><div class="s-num" style="color:#ea4335">${low}</div><div class="s-lbl">Low KD &lt;40%</div></div>
+      <div class="s-card"><div class="s-num" style="color:#1d4ed8">${over}</div><div class="s-lbl">Overexpression (KD &lt;0%)</div></div>
+      <div class="s-card"><div class="s-num">${genes}</div><div class="s-lbl">Target genes</div></div>`;
+    return;
+  }
+  const samples=[...new Set(kd.map(r=>r.siRNA))].length;
+  const targets=[...new Set(kd.map(r=>r.primer))].length;
+  const bioReps=kd.reduce((sum,row)=>sum+(Number(row.n)||0),0);
   document.getElementById('summaryCards').innerHTML=`
-    <div class="s-card"><div class="s-num">${kd.length}</div><div class="s-lbl">siRNAs analysed</div></div>
-    <div class="s-card"><div class="s-num" style="color:#34a853">${high}</div><div class="s-lbl">High KD ≥70%</div></div>
-    <div class="s-card"><div class="s-num" style="color:#ffa000">${mid}</div><div class="s-lbl">Medium KD 40–70%</div></div>
-    <div class="s-card"><div class="s-num" style="color:#ea4335">${low}</div><div class="s-lbl">Low KD &lt;40%</div></div>
-    <div class="s-card"><div class="s-num" style="color:#1d4ed8">${over}</div><div class="s-lbl">Overexpression (KD &lt;0%)</div></div>
-    <div class="s-card"><div class="s-num">${genes}</div><div class="s-lbl">Target genes</div></div>`;
+    <div class="s-card"><div class="s-num">${samples}</div><div class="s-lbl">Samples</div></div>
+    <div class="s-card"><div class="s-num">${targets}</div><div class="s-lbl">Targets</div></div>
+    <div class="s-card"><div class="s-num">${kd.length}</div><div class="s-lbl">Sample-target FC values</div></div>
+    <div class="s-card"><div class="s-num">${bioReps}</div><div class="s-lbl">Bio-rep measurements</div></div>`;
 }
 
 /* ═══════════════════════════════════════════════════════
    CHARTS
 ═══════════════════════════════════════════════════════ */
 
-/* X-axis label: show siRNA only when its name already implies the primer, else show siRNA<br>(primer) */
-function _chartLabel(siRNA, primer){
-  return siRNA.toLowerCase().includes(primer.toLowerCase()) ? siRNA : `${siRNA}<br>(${primer})`;
+/* X-axis label:
+   - For samples with multiple targets (or combos like siFNIP1+siFNIP2): disambiguate targets so bars are separated, e.g. siNTC (FNIP1), siFNIP1 (FNIP2), siFNIP1+siFNIP2_60nM (FNIP1)
+   - When siRNA name already uniquely implies the primer without collision, show siRNA alone */
+function _chartLabel(siRNA, primer, allSorted, chartLabel=''){
+  if(chartLabel) return chartLabel;
+  const sLow = String(siRNA || '').toLowerCase();
+  const pLow = String(primer || '').toLowerCase();
+
+  // If siRNA does not include primer (e.g. siNTC on FNIP1, or siFNIP1 on FNIP2):
+  if(!sLow.includes(pLow)){
+    return `${siRNA}<br>(${primer})`;
+  }
+
+  // If allSorted is provided, check if this siRNA has multiple primers in the chart:
+  if(allSorted && Array.isArray(allSorted)){
+    const primersForSi = [...new Set(allSorted.filter(r => r.siRNA === siRNA).map(r => r.primer))];
+    if(primersForSi.length > 1){
+      // Check if siRNA includes other tested primers (combo siRNA like siFNIP1+siFNIP2):
+      const otherPrimers = primersForSi.filter(p => p.toLowerCase() !== pLow);
+      if(otherPrimers.some(p => sLow.includes(p.toLowerCase()))){
+        return `${siRNA}<br>(${primer})`;
+      }
+    }
+  }
+
+  return siRNA;
 }
 
 /* Build one set of three Plotly charts (Bar/Dot/Rel) into the given div IDs */
 function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, ntcData, refGene, compact){
   const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
   const nGroups = allSorted.length;
-  const PX_PER_GROUP = 75;
-  const chartW = Math.max(750, nGroups * PX_PER_GROUP);
-  const marginB = 100;
-  const chartH = marginB + Math.max(350, Math.min(800, 225 + nGroups * 8));
-  const labels = allSorted.map(r=>_chartLabel(r.siRNA, r.primer));
+  const PX_PER_GROUP = 60;
+  const chartW = Math.max(600, nGroups * PX_PER_GROUP);
+  const labels = allSorted.map(r=>_chartLabel(r.siRNA, r.primer, allSorted, r.chartLabel));
+  const categories=allSorted.map((_,i)=>`chart-group-${i}`);
+  const marginB = compact ? 120 : 200;
+  const chartH = compact
+    ? Math.max(380, Math.min(700, 320 + nGroups * 6))
+    : Math.max(500, Math.min(900, 440 + nGroups * 6));
 
   const kdVals   = allSorted.map(r=>+r.kd.toFixed(2));
   const seKDPct  = allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
   const seExprPct= allSorted.map(r=>isNaN(r.seRE)?null:+(r.seRE*100).toFixed(2));
-  const colors   = allSorted.map((r,i)=>isNTCArr[i]?'#9ca3af':r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
+  const matrixMode=allSorted.some((row,index)=>!isNTCArr[index]&&getPlateAnalysisMode(row)==='matrix');
+  const colors=allSorted.map((r,i)=>isNTCArr[i]?'#9ca3af':matrixMode?(getExpressionDirectionColors(r.meanRE)?.background||'#9ca3af'):r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
+  const barOpacity=matrixMode?1:.82;
   const fnt={family:'"Segoe UI",-apple-system,BlinkMacSystemFont,sans-serif',color:'#334155'};
   const axBase={gridcolor:'#e8edf3',linecolor:'#d0d7e3',tickfont:{size:11,color:'#64748b'},zeroline:false};
   const CL={
     plot_bgcolor:'rgba(247,249,252,0.7)',paper_bgcolor:'#ffffff',font:fnt,
     width:chartW,height:chartH,margin:{t:60,b:marginB,l:70,r:20},
-    xaxis:{...axBase,tickangle:-40},yaxis:{...axBase},
+    xaxis:{...axBase,tickangle:-40,tickmode:'array',tickvals:categories,ticktext:labels,categoryorder:'array',categoryarray:categories},yaxis:{...axBase},
     legend:{orientation:'h',y:-0.5,font:{size:11}},
-    hoverlabel:{font:{family:fnt.family,size:12},bgcolor:'white',bordercolor:'#cdd5e0'}
+    hoverlabel:{font:{family:fnt.family,size:12,color:'#152433'},bgcolor:'#ffffff',bordercolor:'#64748b'}
   };
+  [plotBarId,plotDotId,plotRelId].forEach(id=>{
+    const plot=document.getElementById(id);
+    if(plot){
+      plot.style.height=`${chartH}px`;
+      if(plot.parentElement) plot.parentElement.style.height=`${chartH+28}px`;
+    }
+  });
   const titleStyle=(text)=>({text:text+hkLabel,font:{...fnt,size:14,color:'#1e3a5f'},x:0.5,xanchor:'center'});
 
-  const barAnnotations=labels.map((lbl,i)=>({x:lbl,y:kdVals[i],xref:'x',yref:'y',
+  const barAnnotations=labels.map((lbl,i)=>({x:categories[i],y:kdVals[i],xref:'x',yref:'y',
     text:kdVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
   Plotly.newPlot(plotBarId,[
-    {type:'bar',x:labels,y:kdVals,
+    {type:'bar',x:categories,y:kdVals,
      error_y:{type:'data',array:seKDPct,visible:true,thickness:1.5,width:4,color:'#475569'},
-     marker:{color:colors,opacity:.82,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
-     customdata:seKDPct,showlegend:false,
-     hovertemplate:'<b>%{x}</b><br>KD: %{y:.1f}%<br>SE: %{customdata:.2f}%<extra></extra>'}
+    marker:{color:colors,opacity:barOpacity,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
+    customdata:labels.map((label,i)=>({label,se:seKDPct[i]})),showlegend:false,
+    hovertemplate:'<b>%{customdata.label}</b><br>KD: %{y:.1f}%<br>SE: %{customdata.se:.2f}%<extra></extra>'}
   ],{...CL,title:titleStyle('siRNA Knockdown Efficiency (%)'),
      yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}},range:[-20,120]},
      annotations:barAnnotations},{responsive:false});
 
   const dotT=[];
   allSorted.forEach((r,i)=>{
-    const lbl=_chartLabel(r.siRNA, r.primer);
+    const lbl=_chartLabel(r.siRNA, r.primer, allSorted, r.chartLabel);
     const wells = r.repWells || r.reps.map(()=>'');
     const bioReps = r.repBioReps || r.reps.map(()=>'');
-    dotT.push({showlegend:false,x:r.reps.map(()=>lbl),
+    dotT.push({showlegend:false,x:r.reps.map(()=>categories[i]),
       y:r.reps.map(v=>+((1-v)*100).toFixed(2)),
-      customdata:r.reps.map((_,j)=>({well:wells[j]||'',bio_rep:bioReps[j]||''})),
+      customdata:r.reps.map((_,j)=>({well:wells[j]||'',bio_rep:bioReps[j]||'',label:lbl})),
       mode:'markers',type:'scatter',
       marker:{size:9,color:colors[i],symbol:'circle-open',line:{width:2}},
-      hovertemplate:'<b>%{x}</b><br>KD: %{y:.2f}%<br>Well: %{customdata.well}<br>Bio-rep: %{customdata.bio_rep}<extra></extra>'});
-    dotT.push({showlegend:false,x:[lbl,lbl],y:isNaN(r.kdSe)?[r.kd,r.kd]:[r.kd-r.kdSe,r.kd+r.kdSe],
+      hovertemplate:'<b>%{customdata.label}</b><br>KD: %{y:.2f}%<br>Well: %{customdata.well}<br>Bio-rep: %{customdata.bio_rep}<extra></extra>'});
+    dotT.push({showlegend:false,x:[categories[i],categories[i]],y:isNaN(r.kdSe)?[r.kd,r.kd]:[r.kd-r.kdSe,r.kd+r.kdSe],
       mode:'lines',type:'scatter',line:{color:colors[i],width:4},hoverinfo:'skip'});
-    dotT.push({showlegend:false,x:[lbl],y:[r.kd],mode:'markers',type:'scatter',
+    dotT.push({showlegend:false,x:[categories[i]],y:[r.kd],mode:'markers',type:'scatter',customdata:[{label:lbl}],
       marker:{size:13,color:colors[i],symbol:'diamond'},
-      hovertemplate:'<b>%{x}</b><br>Mean KD: %{y:.2f}%<extra></extra>'});
+      hovertemplate:'<b>%{customdata.label}</b><br>Mean KD: %{y:.2f}%<extra></extra>'});
   });
-  const dotAnnotations=allSorted.map((r,i)=>({x:_chartLabel(r.siRNA,r.primer),y:r.kd,xref:'x',yref:'y',
+  const dotAnnotations=allSorted.map((r,i)=>({x:categories[i],y:r.kd,xref:'x',yref:'y',
     text:r.kd.toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
   Plotly.newPlot(plotDotId,dotT,{...CL,
     title:titleStyle('Individual Replicates — KD% (Mean ± SE)'),
@@ -3167,14 +3876,14 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
     annotations:dotAnnotations},{responsive:false});
 
   const exprVals=allSorted.map(r=>+(r.meanRE*100).toFixed(2));
-  const relAnnotations=labels.map((lbl,i)=>({x:lbl,y:exprVals[i],xref:'x',yref:'y',
+  const relAnnotations=labels.map((lbl,i)=>({x:categories[i],y:exprVals[i],xref:'x',yref:'y',
     text:exprVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
   Plotly.newPlot(plotRelId,[
-    {type:'bar',x:labels,y:exprVals,
+    {type:'bar',x:categories,y:exprVals,
      error_y:{type:'data',array:seExprPct,visible:true,thickness:1.5,width:4,color:'#475569'},
-     marker:{color:colors,opacity:.82,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
-     customdata:seExprPct,showlegend:false,
-     hovertemplate:'<b>%{x}</b><br>Expression: %{y:.2f}% of NTC<br>SE: %{customdata:.2f}%<extra></extra>'}
+    marker:{color:colors,opacity:barOpacity,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
+    customdata:labels.map((label,i)=>({label,se:seExprPct[i]})),showlegend:false,
+    hovertemplate:'<b>%{customdata.label}</b><br>Expression: %{y:.2f}% of NTC<br>SE: %{customdata.se:.2f}%<extra></extra>'}
   ],{...CL,
     title:titleStyle('Expression Relative to NTC (NTC = 100%)'),
     yaxis:{...axBase,title:{text:'Expression (% of NTC)',font:{size:12}}},
@@ -3183,26 +3892,90 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
 
 /* Build sorted allSorted + isNTC arrays for a given kd slice */
 function _buildSorted(kdSlice, ntcSlice){
-  const activePrimers = new Set(kdSlice.map(r=>r.primer));
-  const ntcByPrimer = [...ntcSlice].filter(r=>activePrimers.has(r.primer)).sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
-  const kdByPrimer  = [...kdSlice].sort((a,b)=>a.siRNA.localeCompare(b.siRNA));
+  const ntcByKey = new Map(ntcSlice.map(row=>[`${row.primer}\x00${row.siRNA}`,row]));
+  const kdByPrimer=[...kdSlice].sort((a,b)=>a.primer.localeCompare(b.primer)||a.siRNA.localeCompare(b.siRNA));
   const allSorted=[], isNTCArr=[];
-  [...activePrimers].sort((a,b)=>a.localeCompare(b)).forEach(primer=>{
-    ntcByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTCArr.push(true);});
-    kdByPrimer.filter(r=>r.primer===primer).forEach(r=>{allSorted.push(r);isNTCArr.push(false);});
+  kdByPrimer.forEach(row=>{
+    const ntc=ntcByKey.get(`${row.primer}\x00${row.ntcRefName}`);
+    if(ntc){
+      allSorted.push({...ntc,chartLabel:`${ntc.siRNA}<br>(${row.primer})`});
+      isNTCArr.push(true);
+    }
+    allSorted.push(row);
+    isNTCArr.push(false);
   });
   return {allSorted, isNTCArr};
 }
 
+function _buildChartFacetGroups(kdSlice, ntcSlice, mode, keyword){
+  if(mode === 'sample'){
+    const samples=[...new Set(kdSlice.map(r=>r.siRNA))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+    return samples.map(sample=>{
+      const sampleKd=kdSlice.filter(r=>r.siRNA===sample);
+      const baselines=new Set(sampleKd.map(r=>r.ntcRefName).filter(Boolean));
+      return {
+        label:`Sample: ${sample}`,
+        kdSlice:sampleKd,
+        ntcSlice:ntcSlice.filter(r=>baselines.has(r.siRNA))
+      };
+    });
+  }
+
+  if(mode === 'ntc'){
+    const baselines = [...new Set(kdSlice.map(r=>r.ntcRefName).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    return baselines.map(ntcName=>({
+      label:`Baseline siNTC: ${ntcName}`,
+      kdSlice:kdSlice.filter(r=>r.ntcRefName===ntcName),
+      ntcSlice:ntcSlice.filter(r=>r.siRNA===ntcName)
+    }));
+  }
+
+  const term = String(keyword||'').trim().toLocaleLowerCase();
+  if(mode === 'keyword' && term){
+    const matches = kdSlice.filter(r=>String(r.siRNA||'').toLocaleLowerCase().includes(term));
+    const others = kdSlice.filter(r=>!String(r.siRNA||'').toLocaleLowerCase().includes(term));
+    return [
+      {label:`Contains "${String(keyword).trim()}"`,kdSlice:matches},
+      {label:'Other siRNAs',kdSlice:others}
+    ].filter(group=>group.kdSlice.length).map(group=>{
+      const baselines = new Set(group.kdSlice.map(r=>r.ntcRefName).filter(Boolean));
+      return {...group,ntcSlice:ntcSlice.filter(r=>baselines.has(r.siRNA))};
+    });
+  }
+
+  return [{label:'',kdSlice,ntcSlice}];
+}
+
+function onChartFacetChange(){
+  const mode = document.getElementById('chartFacetMode')?.value || 'none';
+  const input = document.getElementById('chartFacetKeyword');
+  const wrap = document.getElementById('chartFacetKeywordWrap');
+  const hint = document.getElementById('chartFacetHint');
+  const keywordMode = mode === 'keyword';
+  if(wrap) wrap.style.display = keywordMode ? '' : 'none';
+  if(input) input.disabled = !keywordMode;
+  if(hint){
+    hint.textContent = mode === 'ntc'
+      ? 'Each baseline siNTC gets its own chart set.'
+      : mode === 'sample'
+        ? 'Each sample gets its own set of all three charts.'
+      : keywordMode
+        ? 'Matching siRNA names are grouped together; non-matches form a second group.'
+        : 'One chart set per selected plate, when applicable.';
+  }
+  if(analysisResult) renderCharts(currentFilteredKd || analysisResult.kdResults);
+}
+
 function renderCharts(kd){
   const refGene = (analysisResult&&analysisResult.refGene)||'';
-  const ntcData = (showNTC && analysisResult&&analysisResult.ntcResults)||[];
+  const activeMode=document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde';
+  const ntcData = showNTC ? (analysisResult?.ntcResults||[]).filter(row=>getPlateAnalysisMode(row)===activeMode) : [];
   const isPerPlate = !!(analysisResult&&analysisResult.isPerPlate);
-  const plateLabels = isPerPlate ? (analysisResult.allPlateLabels||[]) : null;
+  const plateLabels=analysisResult?.allPlateLabels?.length?analysisResult.allPlateLabels:(analysisResult?.singlePlateLabel?[analysisResult.singlePlateLabel]:[]);
 
   // Determine which plates are currently selected (plate filter in Results)
   const selectedPlates = isPerPlate ? getSelectedResultPlates() : null;
-  const activePlates = plateLabels
+  const activePlates = plateLabels.length
     ? (selectedPlates === null ? plateLabels : plateLabels.filter(p=>selectedPlates.includes(p)))
     : null;
 
@@ -3211,47 +3984,51 @@ function renderCharts(kd){
     if(el) el.innerHTML='';
   });
 
-  if(isPerPlate && activePlates && activePlates.length > 1){
-    // One chart set per plate
-    activePlates.forEach(plateLabel=>{
-      const kdSlice = kd.filter(r=>r.plate===plateLabel);
-      const ntcSlice = ntcData.filter(r=>r.plate===plateLabel);
-      const {allSorted, isNTCArr} = _buildSorted(kdSlice, ntcSlice);
-      if(!allSorted.length) return;
+  if(activePlates && activePlates.length===0) return;
+  const splitByPlate=!!(activePlates&&activePlates.length>1);
+  const plateSlices = splitByPlate
+    ? activePlates.map(plateLabel=>({
+        plateLabel,
+        kdSlice:kd.filter(row=>getPlateLabelForRow(row)===plateLabel),
+        ntcSlice:ntcData.filter(row=>getPlateLabelForRow(row)===plateLabel)
+      }))
+    : [{
+        plateLabel:activePlates?.length===1?activePlates[0]:'',
+        kdSlice:activePlates?.length===1?kd.filter(row=>getPlateLabelForRow(row)===activePlates[0]):kd,
+        ntcSlice:activePlates?.length===1?ntcData.filter(row=>getPlateLabelForRow(row)===activePlates[0]):ntcData
+      }];
+  const facetMode = document.getElementById('chartFacetMode')?.value || 'none';
+  const facetKeyword = document.getElementById('chartFacetKeyword')?.value || '';
+  const compactCharts=splitByPlate||facetMode!=='none';
+  const chartSets = plateSlices.flatMap(plate=>
+    _buildChartFacetGroups(plate.kdSlice, plate.ntcSlice, facetMode, facetKeyword)
+      .map(group=>({...group,plateLabel:plate.plateLabel}))
+  );
 
-      const safePl = plateLabel.replace(/[^A-Za-z0-9_-]/g,'_');
-      // Inject divs into each container
-      ['Rel','Bar','Dot'].forEach(type=>{
-        const container = document.getElementById(`fig${type}Container`);
-        if(!container) return;
-        const section = document.createElement('div');
-        section.className = 'fig-plate-section';
-        section.innerHTML = `<div class="fig-plate-label">${esc(plateLabel)}</div>`+
-          `<div class="fig-wrap"><div id="plot${type}_${safePl}" style="width:100%;height:100%"></div></div>`;
-        container.appendChild(section);
-      });
-
-      _renderChartSet(
-        `plotBar_${safePl}`, `plotDot_${safePl}`, `plotRel_${safePl}`,
-        allSorted, isNTCArr, ntcSlice, refGene, true
-      );
-    });
-  } else {
-    // Single chart (single-plate, global NTC, or only 1 plate selected)
-    const kdSlice = (isPerPlate && activePlates && activePlates.length===1)
-      ? kd.filter(r=>r.plate===activePlates[0]) : kd;
-    const ntcSlice = (isPerPlate && activePlates && activePlates.length===1)
-      ? ntcData.filter(r=>r.plate===activePlates[0]) : ntcData;
-    const {allSorted, isNTCArr} = _buildSorted(kdSlice, ntcSlice);
+  chartSets.forEach((chartSet,index)=>{
+    const {allSorted,isNTCArr} = _buildSorted(chartSet.kdSlice, chartSet.ntcSlice);
+    if(!allSorted.length) return;
+    const suffix = `group${index+1}`;
+    const headings = [];
+    if(splitByPlate) headings.push(chartSet.plateLabel);
+    if(chartSet.label) headings.push(chartSet.label);
+    const heading = headings.filter(Boolean).join(' · ');
 
     ['Rel','Bar','Dot'].forEach(type=>{
       const container = document.getElementById(`fig${type}Container`);
       if(!container) return;
-      container.innerHTML=`<div class="fig-wrap"><div id="plot${type}" style="width:100%;height:100%"></div></div>`;
+      const section = document.createElement('div');
+      section.className = 'fig-plate-section';
+      section.innerHTML = `${heading ? `<div class="fig-plate-label">${esc(heading)}</div>` : ''}`+
+        `<div class="fig-wrap"><div id="plot${type}_${suffix}" style="width:100%;height:100%"></div></div>`;
+      container.appendChild(section);
     });
 
-    _renderChartSet('plotBar','plotDot','plotRel', allSorted, isNTCArr, ntcSlice, refGene);
-  }
+    _renderChartSet(
+      `plotBar_${suffix}`, `plotDot_${suffix}`, `plotRel_${suffix}`,
+      allSorted, isNTCArr, chartSet.ntcSlice, refGene, compactCharts
+    );
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3353,10 +4130,10 @@ function exportPrismFig(chartId){
   const isRelChart = chartId==='figRel';
 
   const kd = currentFilteredKd || analysisResult.kdResults;
-  const isPerPlate = !!(analysisResult.isPerPlate);
-  const allPlateLabels = analysisResult.allPlateLabels || [];
+  const isPerPlate = !!analysisResult.isPerPlate;
+  const allPlateLabels=analysisResult.allPlateLabels?.length?analysisResult.allPlateLabels:(analysisResult.singlePlateLabel?[analysisResult.singlePlateLabel]:[]);
   const selectedPlates = isPerPlate ? getSelectedResultPlates() : null;
-  const activePlates = isPerPlate
+  const activePlates = allPlateLabels.length
     ? (selectedPlates === null ? allPlateLabels : allPlateLabels.filter(p=>selectedPlates.includes(p)))
     : null;
 
@@ -3420,20 +4197,22 @@ function exportPrismFig(chartId){
     return {sheetUID, sheetTitle, files};
   }
 
-  // Build per-plate or single sheets
+  // Export all visible plate/facet groups into one Prism document.
   const sheetEntries = [];
-  if(isPerPlate && activePlates && activePlates.length > 1){
-    activePlates.forEach((plateLabel, i) => {
-      const kdSlice = kd.filter(r=>r.plate===plateLabel);
-      const ntcSlice = (analysisResult.ntcResults||[]).filter(r=>r.plate===plateLabel);
-      const groups = buildGroups(kdSlice, ntcSlice);
-      sheetEntries.push(buildSheetEntries(groups, `${plateLabel} — ${yLabel}`, i));
+  const activePlateLabels=activePlates||[''];
+  const facetMode=document.getElementById('chartFacetMode')?.value||'none';
+  const facetKeyword=document.getElementById('chartFacetKeyword')?.value||'';
+  const ntcRows=(analysisResult.ntcResults||[]).filter(row=>getPlateAnalysisMode(row)===(document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde'));
+  activePlateLabels.forEach(plateLabel=>{
+    const kdSlice=plateLabel?kd.filter(row=>getPlateLabelForRow(row)===plateLabel):kd;
+    const ntcSlice=plateLabel?ntcRows.filter(row=>getPlateLabelForRow(row)===plateLabel):ntcRows;
+    const facetGroups=_buildChartFacetGroups(kdSlice,ntcSlice,facetMode,facetKeyword);
+    facetGroups.forEach(group=>{
+      const groups=buildGroups(group.kdSlice,group.ntcSlice);
+      const title=[plateLabel,group.label,yLabel].filter(Boolean).join(' — ');
+      sheetEntries.push(buildSheetEntries(groups,title,sheetEntries.length));
     });
-  } else {
-    const ntcAll = analysisResult.ntcResults||[];
-    const groups = buildGroups(kd, ntcAll);
-    sheetEntries.push(buildSheetEntries(groups, yLabel, 0));
-  }
+  });
 
   const validSheets = sheetEntries.filter(s=>s.sheetUID);
   if(!validSheets.length){ btnFlash(prismBtn,'No data to export'); return; }
@@ -3486,34 +4265,66 @@ function downloadKDcsv(){
   if(!analysisResult) return;
   const fmtSE = v => isNaN(v)?'N/A':v.toFixed(4);
   const fmtSE2= v => isNaN(v)?'N/A':v.toFixed(2);
-  const kdRows = currentFilteredKd || analysisResult.kdResults;
+  const kdRows = currentFilteredKDE || (currentFilteredKd||analysisResult.kdResults).filter(row=>getPlateAnalysisMode(row)==='kde');
   const hasPlate = kdRows.some(r => r.plate);
-  const plateCsvHdr = hasPlate ? 'Plate,' : '';
-  let csv=`Housekeeping_Gene,${plateCsvHdr}siRNA,Target_Primer,Expression_pct_of_NTC,SE_pct_of_NTC,Mean_RelExp,SE_RelExp,KD_pct,KD_SE_pct,N,Individual_RelExp\n`;
-  kdRows.forEach(r=>{
-    const plateVal = hasPlate ? `${r.plate||''},` : '';
-    csv+=`${currentResultRefGene},${plateVal}${r.siRNA},${r.primer},${(r.meanRE*100).toFixed(4)},${fmtSE(r.seRE*100)},${r.meanRE.toFixed(6)},${fmtSE(r.seRE)},`
-      +`${r.kd.toFixed(2)},${fmtSE2(r.kdSe)},${r.n},`
-        +`"${r.reps.map(v=>v.toFixed(4)).join(';')}"\n`;
-  });
+  const hasNtcRef = selectedNtcList.length > 1 || new Set(kdRows.map(r => r.ntcRefName).filter(Boolean)).size > 1;
+  const headers = ['Housekeeping_Gene',...(hasPlate?['Plate']:[]),'siRNA',...(hasNtcRef?['Baseline_NTC']:[]),
+    'Target_Primer','Expression_pct_of_NTC','SE_pct_of_NTC','Mean_RelExp','SE_RelExp','KD_pct','KD_SE_pct','N','Individual_RelExp'];
+  const rows = kdRows.map(row=>[
+    currentResultRefGene,...(hasPlate?[row.plate||'']:[]),row.siRNA,...(hasNtcRef?[row.ntcRefName||'']:[]),row.primer,
+    (row.meanRE*100).toFixed(4),fmtSE(row.seRE*100),row.meanRE.toFixed(6),fmtSE(row.seRE),
+    row.kd.toFixed(2),fmtSE2(row.kdSe),row.n,row.reps.map(value=>value.toFixed(4)).join(';')
+  ]);
+  const csv = makeCsv(headers,rows);
   dl(csv,`siRNA_KD_summary_${(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.csv`);
 }
 function downloadDetailCsv(){
   const detailRows = currentFilteredDetailRows || (analysisResult&&analysisResult.detailRows);
   if(!detailRows||!detailRows.length) return;
   const allCols = Object.keys(detailRows[0]);
-  const ORDERED = ['row_type','plate','treatment','bio_rep','well','raw_ct','primer','ct_target_mean','ref_gene','ct_ref_mean','dct','ntc_mean_dct','ddct','rel_exp','kd_pct'];
+  const ORDERED = ['row_type','plate','treatment','ntc_ref','bio_rep','well','raw_ct','primer','ct_target_mean','ref_gene','ct_ref_mean','dct','ntc_mean_dct','ddct','rel_exp','kd_pct'];
   const cols = ORDERED.filter(c=>allCols.includes(c));
-  const LABELS = {treatment:'siRNA'};
-  const q=v=>{const s=String(v??'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s;};
-  let csv=cols.map(c=>q(LABELS[c]||c)).join(',')+'\n';
-  detailRows.forEach(r=>{ csv+=cols.map(c=>q(r[c])).join(',')+'\n'; });
+  const LABELS = {treatment:'siRNA', ntc_ref:'Baseline_NTC'};
+  const csv = makeCsv(cols.map(column=>LABELS[column]||column),detailRows.map(row=>cols.map(column=>row[column])));
   dl(csv,`siRNA_KD_detail_${(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.csv`);
+}
+function makeCsv(headers,rows){
+  return analysisCore.serializeCsv(headers,rows);
+}
+function downloadAnalysisMetadata(){
+  if(!analysisResult) return;
+  const metadata = analysisCore.buildAnalysisMetadata({
+    version:'1.5',
+    exportedAt:new Date().toISOString(),
+    sourceFiles:{
+      metadata:layoutFiles.map(item=>({name:item.file.name,plate:item.assignedPlate})),
+      results:resultFiles.map(item=>({name:item.file.name,plate:item.assignedPlate}))
+    },
+    referenceGenes:analysisResult.refGenes||[],
+    displayedReferenceGene:currentResultRefGene,
+    ntcTreatments:analysisResult.ntcTreatments||[],
+    ntcMode:isMultiPlate?ntcMode:'single-plate',
+    globalNtcPlate:ntcMode==='global'?(getDistinctPlateNumbers()[globalNtcPlateIdx]??null):null,
+    ntcSampleMapping:{...ntcSampleMapping},
+    sampleToGroup:{...sampleToGroup},
+    omittedWells:analysisResult.omittedWells||[],
+    technicalReplicateCtRangeWarning:Number(document.getElementById('techRepCtRange')?.value??1),
+    facetMode:document.getElementById('chartFacetMode')?.value||'none',
+    keyword:document.getElementById('chartFacetKeyword')?.value||''
+  });
+  const blob = new Blob([JSON.stringify(metadata,null,2)],{type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href=url;
+  link.download=`siRNA_analysis_settings_${(currentResultRefGene||'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.json`;
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function dl(text,name){
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
   a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function showInlineErr(id, msg){
   const el=document.getElementById(id);
@@ -3539,7 +4350,8 @@ function btnFlash(btn, msg){
 /* treatmentOf: strip trailing _N (bio-rep suffix) to get treatment group name.
    e.g. "siNTC_mix_1" → "siNTC_mix",  "siCtrl" → "siCtrl" (no change) */
 function treatmentOf(siRNA){
-  return siRNA.replace(/_\d+$/, '');
+  if(sampleToGroup && sampleToGroup[siRNA]) return sampleToGroup[siRNA];
+  return String(siRNA || '').replace(/_\d+$/, '');
 }
 
 function normWell(w){
@@ -3583,6 +4395,7 @@ function markZoneDone(id, msg){
 function clearLayout(){
   layoutAoa = null; layoutHdrIdx = -1;
   layoutFiles = [];
+  sampleToGroup = {};
   const inp = document.getElementById('fileLayout');
   if(inp) inp.value = '';
   const z = document.getElementById('zoneLayout');
@@ -3628,11 +4441,14 @@ function switchPrevTab(id,btn){
   document.getElementById(id).classList.add('active'); btn.classList.add('active');
 }
 function switchTabGroup(groupId, tabId, btn){
+  if(groupId==='resGroup1' && tabId!=='tabDetail') setDetailTableExpanded(false);
   const group = document.getElementById(groupId);
   if(!group) return;
   group.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   group.querySelectorAll('.tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(tabId).classList.add('active'); btn.classList.add('active');
+  if(groupId==='resGroup1' && currentFilteredKd && (tabId==='tabFC'||tabId==='tabKD'))
+    renderSummaryCards(currentFilteredKd,tabId==='tabFC');
   if(groupId==='resGroup2' && currentFilteredKd){
     renderCharts(currentFilteredKd);
   } else {
