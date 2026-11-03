@@ -191,6 +191,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     .refgene-panel label{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:.8rem;font-weight:400;color:var(--text);}
     .refgene-panel label:hover{background:#f1f5f9;}
     .refgene-panel input[type=checkbox]{accent-color:#3b82f6;width:14px;height:14px;cursor:pointer;flex-shrink:0;}
+    .result-control-field{width:200px;max-width:100%}
+    .result-control-field>label{font-size:.85rem;font-weight:700;color:#555}
+    .result-control-field>select,.result-control-field>.refgene-drop{width:100%}
+    .result-control-field>input,.result-control-field>select{height:34px}
 
     /* ── Header override box ── */
     .hdr-override{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -393,8 +397,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     <h2>Configure Analysis</h2>
     <div class="alert alert-info" id="cfgAutoMsg" style="display:none"></div>
     <div class="col-mapper" style="margin-top:0">
-      <!-- ── Reference Gene + siNTC + Sample filter ── -->
-      <div class="mapper-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));max-width:none;gap:12px">
+      <!-- ── Reference Gene + siNTC ── -->
+      <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,200px);justify-content:start;text-align:left;max-width:none;gap:12px">
         <div class="mapper-item">
           <label style="font-size:.85rem;font-weight:700;color:#555;">Reference (Housekeeping)</label>
           <div class="refgene-drop" id="cfgRefGeneDrop">
@@ -417,38 +421,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           </div>
           <span id="cfgNtcErr" style="font-size:.78rem;color:var(--err,#a11c1c);display:none"></span>
         </div>
-        <div class="mapper-item">
-          <label style="font-size:.85rem;font-weight:700;color:#555;">Sample <span style="font-weight:400;color:#888">— display filter</span></label>
-          <div class="refgene-drop" id="cfgSampleDrop">
-            <div class="refgene-btn" id="cfgSampleBtn" onclick="toggleSampleDrop(event)">
-              <span class="rg-label" id="cfgSampleLabel">All</span>
-              <span class="rg-arrow">▼</span>
-            </div>
-            <div class="refgene-panel" id="cfgSamplePanel"></div>
-          </div>
-        </div>
-        <div class="mapper-item">
-          <label style="font-size:.85rem;font-weight:700;color:#555;">KDE Plates</label>
-          <div class="refgene-drop plate-mode-drop" id="kdePlateModeDrop">
-            <div class="refgene-btn" id="kdePlateModeBtn" onclick="togglePlateModeDrop('kde',event)">
-              <span class="rg-label" id="kdePlateModeLabel">Auto-detect</span>
-              <span class="rg-arrow">▼</span>
-            </div>
-            <div class="refgene-panel" id="kdePlateModePanel"></div>
-          </div>
-        </div>
-        <div class="mapper-item">
-          <label style="font-size:.85rem;font-weight:700;color:#555;">Matrix Plates</label>
-          <div class="refgene-drop plate-mode-drop" id="matrixPlateModeDrop">
-            <div class="refgene-btn" id="matrixPlateModeBtn" onclick="togglePlateModeDrop('matrix',event)">
-              <span class="rg-label" id="matrixPlateModeLabel">Auto-detect</span>
-              <span class="rg-arrow">▼</span>
-            </div>
-            <div class="refgene-panel" id="matrixPlateModePanel"></div>
-          </div>
-        </div>
       </div>
-      <p style="font-size:.75rem;color:#6b7a8d;margin:6px 0 0">Unselected plates are auto-detected. Each plate can use only one mode.</p>
 
       <!-- ── Multi-NTC & Sample Mapping (collapsible, collapsed by default) ── -->
       <div style="margin-top:10px">
@@ -475,7 +448,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
         <label style="font-size:.85rem;font-weight:700;color:#555;display:block;margin-bottom:8px">Omit Well</label>
         <div class="omit-toolbar">
-          <input type="text" id="omitSearch" placeholder="Search by well / siRNA / primer / Ct" oninput="filterOmitList()"/>
+          <input type="text" id="omitSearch" placeholder="e.g. A1, B2, siGENE" oninput="filterOmitList()"/>
           <button class="btn-secondary" type="button" onclick="selectVisibleOmit(true)">Select Visible</button>
           <button class="btn-secondary" type="button" onclick="selectVisibleOmit(false)">Clear Visible</button>
           <span class="omit-meta" id="omitMeta"></span>
@@ -487,6 +460,28 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div style="margin-top:16px">
         <button id="advToggleBtn" onclick="toggleAdvancedSettings()" style="background:none;border:none;padding:0;font-size:.8rem;font-weight:400;color:#6b7a8d;cursor:pointer">▼ Advanced settings</button>
         <div id="advancedSettingsWrap" class="hidden" style="margin-top:10px">
+          <div class="cfg-row" style="margin:0 0 14px">
+            <div class="mapper-item">
+              <label style="font-size:.85rem;font-weight:700;color:#555;">KDE Plates</label>
+              <div class="refgene-drop plate-mode-drop" id="kdePlateModeDrop">
+                <div class="refgene-btn" id="kdePlateModeBtn" onclick="togglePlateModeDrop('kde',event)">
+                  <span class="rg-label" id="kdePlateModeLabel">All</span>
+                  <span class="rg-arrow">▼</span>
+                </div>
+                <div class="refgene-panel" id="kdePlateModePanel"></div>
+              </div>
+            </div>
+            <div class="mapper-item">
+              <label style="font-size:.85rem;font-weight:700;color:#555;">Matrix Plates</label>
+              <div class="refgene-drop plate-mode-drop" id="matrixPlateModeDrop">
+                <div class="refgene-btn" id="matrixPlateModeBtn" onclick="togglePlateModeDrop('matrix',event)">
+                  <span class="rg-label" id="matrixPlateModeLabel">All</span>
+                  <span class="rg-arrow">▼</span>
+                </div>
+                <div class="refgene-panel" id="matrixPlateModePanel"></div>
+              </div>
+            </div>
+          </div>
 
           <!-- NTC Normalization Mode (multi-plate only) -->
           <div id="globalNtcWrap" class="ntc-mode-section" style="display:none;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
@@ -505,7 +500,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <!-- Data Completeness Matrix -->
                     <div class="cfg-row" style="margin:0 0 14px">
                       <div class="cfg-item">
-                        <label for="techRepCtRange">Technical replicate Ct range warning</label>
+                        <label for="techRepCtRange" style="font-size:.85rem;font-weight:700;color:#555;">Technical replicate Ct range warning</label>
                         <input id="techRepCtRange" type="number" min="0" max="20" step="0.1" value="1.0" onchange="runAnalysis()"/>
                         <small style="color:var(--muted);font-size:.74rem">Warn when max − min Ct exceeds this value; 0 disables the warning. No wells are removed automatically.</small>
                       </div>
@@ -539,48 +534,55 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   <!-- ═══ CARD 4 · Results ═══ -->
   <div class="card hidden" id="card4">
     <h2>Results &amp; Figures</h2>
-    <div class="col-mapper" style="margin-bottom:10px;padding:10px 12px">
-      <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,auto));align-items:end">
-        <!-- Plate selector — only visible in per-plate NTC mode -->
-        <div class="mapper-item" id="resultPlateFilterWrap" style="display:none">
-          <label style="font-size:.85rem;font-weight:700;color:#555;">Plate</label>
-          <div class="refgene-drop" id="resultPlateDrop">
-            <div class="refgene-btn" id="resultPlateBtn" onclick="toggleResultPlateDrop(event)">
-              <span class="rg-label" id="resultPlateLabel">All</span>
-              <span class="rg-arrow">▼</span>
-            </div>
-            <div class="refgene-panel" id="resultPlatePanel"></div>
-          </div>
-        </div>
-        <div class="mapper-item">
-          <label for="resultRefGeneSelect" style="font-size:.85rem;font-weight:700;color:#555;">Reference (Housekeeping)</label>
-          <select id="resultRefGeneSelect" onchange="onDisplayedRefGeneChange(this.value)" style="width:200px;"></select>
-        </div>
-      </div>
-    </div>
     <div class="summary-cards" id="summaryCards"></div>
 
     <!-- ── Group 1: Results ── -->
     <div id="resGroup1">
       <div class="col-mapper" style="margin-bottom:10px;padding:10px 12px">
-        <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));align-items:end">
-          <div class="mapper-item">
-            <label for="detailSearch">Search</label>
-            <input type="text" id="detailSearch" placeholder="sample / target / value" oninput="refreshResultFilters()"/>
+        <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));align-items:end;margin-bottom:10px">
+          <div class="mapper-item result-control-field">
+            <label for="resultRefGeneSelect">Reference (Housekeeping)</label>
+            <select id="resultRefGeneSelect" onchange="onDisplayedRefGeneChange(this.value)"></select>
           </div>
-          <div class="mapper-item">
-            <label for="detailExclude">Exclude</label>
-            <input type="text" id="detailExclude" placeholder="keyword; keyword" oninput="refreshResultFilters()"/>
-          </div>
-          <div class="mapper-item">
-            <label>Row Type (Detail only)</label>
-            <div class="refgene-drop" id="detailRowTypeDrop" style="width:160px">
+          <div class="mapper-item result-control-field">
+            <label>Row Type <span style="font-weight:400;color:#888">— Detail only</span></label>
+            <div class="refgene-drop" id="detailRowTypeDrop">
               <div class="refgene-btn" id="detailRowTypeBtn" onclick="toggleDetailRowTypeDrop(event)">
                 <span class="rg-label" id="detailRowTypeLabel">all</span>
                 <span class="rg-arrow">▼</span>
               </div>
               <div class="refgene-panel" id="detailRowTypePanel"></div>
             </div>
+          </div>
+          <div class="mapper-item result-control-field" id="resultPlateFilterWrap" style="display:none">
+            <label>Plate</label>
+            <div class="refgene-drop" id="resultPlateDrop">
+              <div class="refgene-btn" id="resultPlateBtn" onclick="toggleResultPlateDrop(event)">
+                <span class="rg-label" id="resultPlateLabel">All</span>
+                <span class="rg-arrow">▼</span>
+              </div>
+              <div class="refgene-panel" id="resultPlatePanel"></div>
+            </div>
+          </div>
+          <div class="mapper-item result-control-field">
+            <label>Sample <span style="font-weight:400;color:#888">— display filter</span></label>
+            <div class="refgene-drop" id="cfgSampleDrop">
+              <div class="refgene-btn" id="cfgSampleBtn" onclick="toggleSampleDrop(event)">
+                <span class="rg-label" id="cfgSampleLabel">All</span>
+                <span class="rg-arrow">▼</span>
+              </div>
+              <div class="refgene-panel" id="cfgSamplePanel"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mapper-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));align-items:end">
+          <div class="mapper-item result-control-field">
+            <label for="detailSearch">Search</label>
+            <input type="text" id="detailSearch" placeholder="sample, target, value" oninput="refreshResultFilters()"/>
+          </div>
+          <div class="mapper-item result-control-field">
+            <label for="detailExclude">Exclude</label>
+            <input type="text" id="detailExclude" placeholder="keyword, keyword" oninput="refreshResultFilters()"/>
           </div>
         </div>
         <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -589,14 +591,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         </div>
       </div>
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTabGroup('resGroup1','tabKD',this)">KD Summary</button>
-        <button id="fcMatrixTabBtn" class="tab-btn" onclick="switchTabGroup('resGroup1','tabFC',this)">Expression FC Matrix</button>
+        <button class="tab-btn active" onclick="switchTabGroup('resGroup1','tabKD',this)">Summary</button>
+        <button id="fcMatrixTabBtn" class="tab-btn" onclick="switchTabGroup('resGroup1','tabFC',this)">Expression Matrix</button>
         <button class="tab-btn" onclick="switchTabGroup('resGroup1','tabDetail',this)">ΔCt / ΔΔCt Detail</button>
         <button class="tab-btn" onclick="switchTabGroup('resGroup1','tabMethod',this)">Method</button>
       </div>
       <div class="tab-panel" id="tabFC">
+        <div style="display:flex;justify-content:flex-end;margin:0 0 8px">
+          <button id="matrixTableExpandBtn" class="btn-secondary" type="button" aria-expanded="false" onclick="toggleMatrixTableExpanded()">Expand Table</button>
+        </div>
         <p style="font-size:.8rem;color:#6b7a8d;margin:0 0 8px">Fold change relative to each target's NTC (1.0): <span style="color:#a32332;font-weight:700">red = increased</span>, <span style="color:#1d4d8f;font-weight:700">blue = decreased</span>; darker = greater change.</p>
-        <div class="tbl-wrap"><table id="fcMatrixTable"></table></div>
+        <div class="tbl-wrap detail-table-wrap"><table id="fcMatrixTable"></table></div>
       </div>
       <div class="tab-panel active" id="tabKD">
         <div class="tbl-wrap"><table id="kdTable"></table></div>
@@ -631,9 +636,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </div>
 
     <div class="btn-row" style="margin-top:14px">
-      <button class="btn-secondary" onclick="downloadKDcsv()">KD Summary CSV</button>
+      <button class="btn-secondary" onclick="downloadKDcsv()">Summary CSV</button>
       <button class="btn-secondary" onclick="downloadDetailCsv()">Full Detail CSV</button>
-      <button class="btn-secondary" onclick="downloadAnalysisMetadata()">Analysis Settings JSON</button>
     </div>
 
     <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
@@ -641,7 +645,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     <!-- ── Group 2: Charts ── -->
     <div id="resGroup2">
       <div class="chart-facet-toolbar">
-        <div class="chart-facet-field">
+        <div class="chart-facet-field result-control-field">
           <label for="chartFacetMode">Facet charts by</label>
           <select id="chartFacetMode" onchange="onChartFacetChange()">
             <option value="none">No faceting</option>
@@ -650,16 +654,30 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             <option value="keyword">siRNA keyword</option>
           </select>
         </div>
+        <div class="chart-facet-field result-control-field">
+          <label for="chartStyle">Chart style</label>
+          <select id="chartStyle" onchange="onChartFacetChange()">
+            <option value="bar">Bar Chart</option>
+            <option value="dot">Dot</option>
+          </select>
+        </div>
+        <div class="chart-facet-field result-control-field">
+          <label for="chartColorMode">Chart colors</label>
+          <select id="chartColorMode" onchange="onChartFacetChange()">
+            <option value="auto">Configure Analysis</option>
+            <option value="kde">KDE</option>
+            <option value="matrix">Matrix</option>
+          </select>
+        </div>
         <div class="chart-facet-field" id="chartFacetKeywordWrap" style="display:none">
           <label for="chartFacetKeyword">Keyword</label>
-          <input id="chartFacetKeyword" type="text" placeholder="e.g. siGENE" oninput="onChartFacetChange()" disabled />
+          <input id="chartFacetKeyword" type="text" placeholder="e.g. siGENE1, siGENE2" oninput="onChartFacetChange()" disabled />
         </div>
-        <span class="chart-facet-hint" id="chartFacetHint">One chart set per selected plate, when applicable.</span>
+        <span class="chart-facet-hint" id="chartFacetHint"></span>
       </div>
       <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTabGroup('resGroup2','figRel',this)">Expression level</button>
-        <button class="tab-btn" onclick="switchTabGroup('resGroup2','figBar',this)">KD Efficiency Bar Chart</button>
-        <button class="tab-btn" onclick="switchTabGroup('resGroup2','figDot',this)">Dot</button>
+        <button class="tab-btn" onclick="switchTabGroup('resGroup2','figBar',this)">KD Efficiency</button>
       </div>
       <div class="tab-panel active" id="figRel">
         <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
@@ -676,14 +694,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <button class="btn-secondary" onclick="exportPrismFig('figBar')">Export .prism</button>
         </div>
         <div id="figBarContainer"></div>
-      </div>
-      <div class="tab-panel" id="figDot">
-        <div style="text-align:right;margin-bottom:4px;display:flex;justify-content:flex-end;gap:6px">
-          <button class="btn-secondary" onclick="toggleNTC()">Show NTC</button>
-          <button class="btn-secondary" onclick="downloadFigAll('Dot','Dot_Replicates')">Export Figure</button>
-          <button class="btn-secondary" onclick="exportPrismFig('figDot')">Export .prism</button>
-        </div>
-        <div id="figDotContainer"></div>
       </div>
     </div>
 
@@ -752,13 +762,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function findDuplicateWells(files, wellColumn){
     const seen = new Map();
     const duplicates = new Map();
-    (files || []).forEach(file => {
+    (files || []).forEach((file, fileIndex) => {
       if(!file?.aoa || file.hdrIdx < 0 || wellColumn < 0) return;
       for(let rowIndex=file.hdrIdx+1; rowIndex<file.aoa.length; rowIndex++){
         const well = normalizeWell(file.aoa[rowIndex]?.[wellColumn]);
         if(!well) continue;
         const plate = file.assignedPlate || 1;
-        const key = `${plate}\x00${well}`;
+        const key = `${fileIndex}\x00${well}`;
         if(!seen.has(key)){
           seen.set(key, file.file?.name || file.name || 'Input');
           continue;
@@ -989,8 +999,8 @@ let currentFilteredKDE = null;
 let currentFilteredDetailRows = null;
 let resultViewAutoSelected = false;
 let detailViewState = {search:'',exclude:'',sortCol:'',sortDir:'asc'};
-let kdePlateSelections = [];
-let matrixPlateSelections = [];
+let kdePlateSelections = ['__all__'];
+let matrixPlateSelections = ['__all__'];
 let sampleToGroup = {}; // siRNA -> biogroup mapping
 
 /* ── Multi-NTC state ── */
@@ -1050,35 +1060,39 @@ function togglePlateModeDrop(mode,event){
   panel.classList.toggle('open',opening);
 }
 function getPlateModeSelections(mode){
+  if(document.getElementById(`${mode}PlateModeAll`)?.checked) return ['__all__'];
   return [...document.querySelectorAll(`#${mode}PlateModePanel input.plate-mode-chk:checked`)].map(input=>input.value);
 }
 function updatePlateModeLabel(mode){
   const selected=getPlateModeSelections(mode);
   const label=document.getElementById(`${mode}PlateModeLabel`);
   if(!label)return;
-  label.textContent=selected.length===0?'Auto-detect':selected.length===1?selected[0]:`${selected.length} plates`;
+  label.textContent=selected.includes('__all__')?'All':selected.length===0?'Default':selected.length===1?selected[0]:`${selected.length} plates`;
   label.classList.toggle('placeholder',selected.length===0);
 }
 function populatePlateModeSelectors(){
   const plates=getDistinctPlateNumbers().map(number=>`P${number}`);
-  kdePlateSelections=kdePlateSelections.filter(plate=>plates.includes(plate));
-  matrixPlateSelections=matrixPlateSelections.filter(plate=>plates.includes(plate)&&!kdePlateSelections.includes(plate));
+  kdePlateSelections=kdePlateSelections.filter(plate=>plate==='__all__'||plates.includes(plate));
+  matrixPlateSelections=matrixPlateSelections.filter(plate=>plate==='__all__'||plates.includes(plate));
   ['kde','matrix'].forEach(mode=>{
     const panel=document.getElementById(`${mode}PlateModePanel`);
     if(!panel)return;
     const selected=mode==='kde'?kdePlateSelections:matrixPlateSelections;
-    panel.innerHTML=plates.map(plate=>
-      `<label><input type="checkbox" class="plate-mode-chk" value="${plate}"${selected.includes(plate)?' checked':''} onchange="onPlateModeSelectionChange('${mode}',this)"> Plate ${plate.slice(1)}</label>`
+    const allSelected=selected.includes('__all__');
+    panel.innerHTML=`<label><input type="checkbox" id="${mode}PlateModeAll" value="__all__"${allSelected?' checked':''} onchange="onPlateModeAllChange('${mode}',this)"> All</label>`+plates.map(plate=>
+      `<label><input type="checkbox" class="plate-mode-chk" value="${plate}"${allSelected||selected.includes(plate)?' checked':''} onchange="onPlateModeSelectionChange('${mode}',this)"> Plate ${plate.slice(1)}</label>`
     ).join('');
     updatePlateModeLabel(mode);
   });
 }
+function onPlateModeAllChange(mode,checkbox){
+  document.querySelectorAll(`#${mode}PlateModePanel input.plate-mode-chk`).forEach(input=>input.checked=checkbox.checked);
+  onPlateModeSelectionChange(mode,checkbox);
+}
 function onPlateModeSelectionChange(mode,checkbox){
-  const other=mode==='kde'?'matrix':'kde';
-  if(checkbox.checked){
-    const conflicting=[...document.querySelectorAll(`#${other}PlateModePanel input.plate-mode-chk`)].find(input=>input.value===checkbox.value);
-    if(conflicting)conflicting.checked=false;
-  }
+  const all=document.getElementById(`${mode}PlateModeAll`);
+  const items=[...document.querySelectorAll(`#${mode}PlateModePanel input.plate-mode-chk`)];
+  if(all&&checkbox!==all) all.checked=items.length>0&&items.every(input=>input.checked);
   kdePlateSelections=getPlateModeSelections('kde');
   matrixPlateSelections=getPlateModeSelections('matrix');
   updatePlateModeLabel('kde');
@@ -1118,7 +1132,7 @@ function renderFileChips(containerId, fileList, assignFnName, removeFnName){
     let pairLabel = '';
     if(plateCount[lf.assignedPlate] > 1){
       plateSubIdx[lf.assignedPlate] = (plateSubIdx[lf.assignedPlate]||0) + 1;
-      pairLabel = `<span class="chip-pair-idx" title="Paired as file #${plateSubIdx[lf.assignedPlate]} within this plate">#${plateSubIdx[lf.assignedPlate]}</span>`;
+      pairLabel = `<span class="chip-pair-idx" title="Paired as file #${plateSubIdx[lf.assignedPlate]} within this plate">Plate ${lf.assignedPlate}.${plateSubIdx[lf.assignedPlate]}</span>`;
     }
     return `<div class="file-chip">
       <span class="chip-icon">${lf.aoa ? '✅' : '⏳'}</span>
@@ -1434,9 +1448,12 @@ function onNtcModeChange(){
   if(analysisResult) runAnalysis();
 }
 function getRequestedPlateMode(plate,rows){
-  if(kdePlateSelections.includes(plate)) return 'kde';
-  if(matrixPlateSelections.includes(plate)) return 'matrix';
-  return shouldShowExpressionMatrix(rows)?'matrix':'kde';
+  const kdeSelected=kdePlateSelections.includes('__all__')||kdePlateSelections.includes(plate);
+  const matrixSelected=matrixPlateSelections.includes('__all__')||matrixPlateSelections.includes(plate);
+  if(kdeSelected&&matrixSelected) return 'both';
+  if(kdeSelected) return 'kde';
+  if(matrixSelected) return 'matrix';
+  return 'both';
 }
 
 function getPlateLabelForRow(row){
@@ -1444,6 +1461,18 @@ function getPlateLabelForRow(row){
 }
 function getPlateAnalysisMode(row){
   return analysisResult?.plateModes?.[getPlateLabelForRow(row)]||'kde';
+}
+function includesPlateAnalysisMode(row,mode){
+  const configured=getPlateAnalysisMode(row);
+  return configured==='both'||configured===mode;
+}
+function getChartColorMode(row){
+  const selected=document.getElementById('chartColorMode')?.value||'auto';
+  if(selected!=='auto') return selected;
+  const configured=getPlateAnalysisMode(row);
+  return configured==='both'
+    ? (document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde')
+    : configured;
 }
 
 function populateGlobalNtcPlateSelect(){
@@ -1994,7 +2023,7 @@ function confirmMapping(){
   const duplicateWells = [...resultDuplicates,...layoutDuplicates];
   if(duplicateWells.length){
     const examples = duplicateWells.slice(0,8).map(item=>`P${item.plate} ${item.well} (${item.count} rows)`).join(', ');
-    showStatus('uploadMergeStatus','error',`Duplicate well positions detected within a plate: ${esc(examples)}${duplicateWells.length>8?`, and ${duplicateWells.length-8} more`:''}. Resolve duplicates before merging.`);
+    showStatus('uploadMergeStatus','error',`Duplicate well positions detected within a source file: ${esc(examples)}${duplicateWells.length>8?`, and ${duplicateWells.length-8} more`:''}. Resolve duplicates within each file before merging. Matching wells in different paired files are allowed.`);
     return;
   }
 
@@ -2079,6 +2108,9 @@ function confirmMapping(){
     };
     const p1lfs = layoutFiles.filter(f => f.assignedPlate === 1);
     const p1rfs = resultFiles.filter(f => f.assignedPlate === 1);
+    if(p1rfs.length > 1){
+      mergedRows.forEach(row => { row.well = `P1.1:${row.well}`; });
+    }
     // Pair by position: Layout_i matches Result_i (not cross-product)
     // Index 0 already merged above; add the rest by position
     const extraCombos = [];
@@ -2095,7 +2127,8 @@ function confirmMapping(){
     for(const {lf, rf} of extraCombos){
       if(!rf?.aoa || rf.hdrIdx < 0) continue;
       const extraRows = buildMergedRowsFromConfig(
-        {layoutAoa: lf?.aoa || null, layoutHdrIdx: lf?.hdrIdx ?? -1, resultAoa: rf.aoa, resultHdrIdx: rf.hdrIdx},
+        {layoutAoa: lf?.aoa || null, layoutHdrIdx: lf?.hdrIdx ?? -1, resultAoa: rf.aoa, resultHdrIdx: rf.hdrIdx,
+          sourcePlate:`P1.${p1rfs.indexOf(rf)+1}`},
         cfg0
       );
       mergedRows = mergedRows.concat(extraRows);
@@ -2159,7 +2192,8 @@ function confirmMapping(){
           const lf = lfs[i], rf = rfs[i];
           if(!lf?.aoa || !rf?.aoa || rf.hdrIdx < 0) continue;
           combinedRows = combinedRows.concat(buildMergedRowsFromConfig(
-            {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
+            {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx,
+              sourcePlate:rfs.length > 1 ? `P${pl}.${i+1}` : ''},
             savedMappingConfig
           ));
         }
@@ -2169,7 +2203,8 @@ function confirmMapping(){
           // withMeta mode: use dummy layoutAoa
           const lf = lfs[0] || {aoa:null, hdrIdx:-1};
           combinedRows = combinedRows.concat(buildMergedRowsFromConfig(
-            {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx},
+            {layoutAoa:lf.aoa, layoutHdrIdx:lf.hdrIdx, resultAoa:rf.aoa, resultHdrIdx:rf.hdrIdx,
+              sourcePlate:rfs.length > 1 ? `P${pl}.${rfs.indexOf(rf)+1}` : ''},
             savedMappingConfig
           ));
         }
@@ -2347,6 +2382,9 @@ function buildMergedRowsFromConfig(p, cfg){
       }
       rows.push({well, siRNA, primer, ct, active});
     }
+  }
+  if(p.sourcePlate){
+    rows.forEach(row => { row.well = `${p.sourcePlate}:${row.well}`; });
   }
   return rows;
 }
@@ -2608,11 +2646,14 @@ function setExpressionMatrixVisibility(showMatrix){
   resultViewAutoSelected=true;
 }
 
+function parseFilterTerms(value){
+  return String(value??'').toLowerCase().split(/[;,\n\uFF0C\uFF1B]+/).map(term=>term.trim()).filter(Boolean);
+}
 function matchesSharedTextFilters(row){
   const values=Object.values(row).map(value=>String(value??'').toLowerCase());
-  const search=detailViewState.search.toLowerCase();
-  if(search&&!values.some(value=>value.includes(search))) return false;
-  const excludeTerms=detailViewState.exclude.toLowerCase().split(/[;,\n]+/).map(term=>term.trim()).filter(Boolean);
+  const searchTerms=parseFilterTerms(detailViewState.search);
+  if(searchTerms.length&&!searchTerms.some(term=>values.some(value=>value.includes(term)))) return false;
+  const excludeTerms=parseFilterTerms(detailViewState.exclude);
   return !excludeTerms.some(term=>values.some(value=>value.includes(term)));
 }
 
@@ -2655,8 +2696,8 @@ function renderActiveAnalysisView(){
     matchesSharedTextFilters(r)
   );
   const activeMode=document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde';
-  const filteredKDE=matchingRows.filter(row=>getPlateAnalysisMode(row)==='kde');
-  const filteredMatrix=matchingRows.filter(row=>getPlateAnalysisMode(row)==='matrix');
+  const filteredKDE=matchingRows.filter(row=>includesPlateAnalysisMode(row,'kde'));
+  const filteredMatrix=matchingRows.filter(row=>includesPlateAnalysisMode(row,'matrix'));
   const filteredKd=activeMode==='matrix'?filteredMatrix:filteredKDE;
   currentFilteredKDE=filteredKDE;
   currentFilteredKd=filteredKd;
@@ -3094,11 +3135,10 @@ function toggleOmitItem(chk){
 }
 
 function filterOmitList(){
-  const kw = (document.getElementById('omitSearch').value || '').trim().toLowerCase();
+  const terms = parseFilterTerms(document.getElementById('omitSearch').value);
   const items = [...document.querySelectorAll('#omitGrid .omit-item')];
-  const hasKw = kw.length > 0;
   items.forEach(item => {
-    const hit = hasKw && (item.dataset.search || '').includes(kw);
+    const hit = terms.some(term=>(item.dataset.search || '').includes(term));
     item.style.display = hit ? '' : 'none';
   });
   updateOmitMeta();
@@ -3601,8 +3641,23 @@ function toggleDetailTableExpanded(){
   const tableWrap=document.querySelector('#tabDetail .detail-table-wrap');
   setDetailTableExpanded(!tableWrap?.classList.contains('detail-table-expanded'));
 }
+function setMatrixTableExpanded(expanded){
+  const tableWrap=document.querySelector('#tabFC .detail-table-wrap');
+  const button=document.getElementById('matrixTableExpandBtn');
+  if(!tableWrap||!button) return;
+  tableWrap.classList.toggle('detail-table-expanded',expanded);
+  button.textContent=expanded?'Collapse Table':'Expand Table';
+  button.setAttribute('aria-expanded',String(expanded));
+}
+function toggleMatrixTableExpanded(){
+  const tableWrap=document.querySelector('#tabFC .detail-table-wrap');
+  setMatrixTableExpanded(!tableWrap?.classList.contains('detail-table-expanded'));
+}
 document.addEventListener('keydown',event=>{
-  if(event.key==='Escape') setDetailTableExpanded(false);
+  if(event.key==='Escape'){
+    setDetailTableExpanded(false);
+    setMatrixTableExpanded(false);
+  }
 });
 
 function resetDetailView(){
@@ -3705,13 +3760,9 @@ function refreshDetailTable(){
   if(!detailViewState.sortDir) detailViewState.sortDir='asc';
   const selectedRowTypes=_getDetailRowTypes();
 
-  const kw=detailViewState.search.toLowerCase();
-  const excludeTerms=detailViewState.exclude.toLowerCase().split(/[;,\n]+/).map(term=>term.trim()).filter(Boolean);
   let filtered=[...allRows].filter(r=>{
     if(selectedRowTypes!==null && !selectedRowTypes.has(String(r.row_type||'')))return false;
-    const matchesSearch=!kw||cols.some(c=>String(r[c]??'').toLowerCase().includes(kw));
-    if(!matchesSearch)return false;
-    return !excludeTerms.some(term=>cols.some(c=>String(r[c]??'').toLowerCase().includes(term)));
+    return matchesSharedTextFilters(r);
   });
 
   const sc=detailViewState.sortCol, sd=detailViewState.sortDir;
@@ -3802,8 +3853,9 @@ function _chartLabel(siRNA, primer, allSorted, chartLabel=''){
   return siRNA;
 }
 
-/* Build one set of three Plotly charts (Bar/Dot/Rel) into the given div IDs */
-function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, ntcData, refGene, compact){
+/* Build expression and KD charts using the selected display style. */
+function _renderChartSet(plotBarId, plotRelId, allSorted, isNTCArr, ntcData, refGene, compact){
+  const isDot = document.getElementById('chartStyle')?.value === 'dot';
   const hkLabel = refGene ? `<br><span style="font-size:11px;color:#64748b">Housekeeping gene: ${refGene}</span>` : '';
   const nGroups = allSorted.length;
   const PX_PER_GROUP = 60;
@@ -3818,8 +3870,8 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
   const kdVals   = allSorted.map(r=>+r.kd.toFixed(2));
   const seKDPct  = allSorted.map(r=>isNaN(r.kdSe)?null:+r.kdSe.toFixed(2));
   const seExprPct= allSorted.map(r=>isNaN(r.seRE)?null:+(r.seRE*100).toFixed(2));
-  const matrixMode=allSorted.some((row,index)=>!isNTCArr[index]&&getPlateAnalysisMode(row)==='matrix');
-  const colors=allSorted.map((r,i)=>isNTCArr[i]?'#9ca3af':matrixMode?(getExpressionDirectionColors(r.meanRE)?.background||'#9ca3af'):r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
+  const matrixMode=allSorted.some((row,index)=>!isNTCArr[index]&&getChartColorMode(row)==='matrix');
+  const colors=allSorted.map((r,i)=>isNTCArr[i]?'#9ca3af':getChartColorMode(r)==='matrix'?(getExpressionDirectionColors(r.meanRE)?.background||'#9ca3af'):r.kd>=70?'#1e9e6b':r.kd>=40?'#d4860b':'#c94040');
   const barOpacity=matrixMode?1:.82;
   const fnt={family:'"Segoe UI",-apple-system,BlinkMacSystemFont,sans-serif',color:'#334155'};
   const axBase={gridcolor:'#e8edf3',linecolor:'#d0d7e3',tickfont:{size:11,color:'#64748b'},zeroline:false};
@@ -3830,7 +3882,7 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
     legend:{orientation:'h',y:-0.5,font:{size:11}},
     hoverlabel:{font:{family:fnt.family,size:12,color:'#152433'},bgcolor:'#ffffff',bordercolor:'#64748b'}
   };
-  [plotBarId,plotDotId,plotRelId].forEach(id=>{
+  [plotBarId,plotRelId].forEach(id=>{
     const plot=document.getElementById(id);
     if(plot){
       plot.style.height=`${chartH}px`;
@@ -3841,7 +3893,7 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
 
   const barAnnotations=labels.map((lbl,i)=>({x:categories[i],y:kdVals[i],xref:'x',yref:'y',
     text:kdVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
-  Plotly.newPlot(plotBarId,[
+  if(!isDot) Plotly.newPlot(plotBarId,[
     {type:'bar',x:categories,y:kdVals,
      error_y:{type:'data',array:seKDPct,visible:true,thickness:1.5,width:4,color:'#475569'},
     marker:{color:colors,opacity:barOpacity,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
@@ -3851,26 +3903,32 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
      yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}},range:[-20,120]},
      annotations:barAnnotations},{responsive:false});
 
+  function buildDotTraces(isExpression){
   const dotT=[];
   allSorted.forEach((r,i)=>{
     const lbl=_chartLabel(r.siRNA, r.primer, allSorted, r.chartLabel);
     const wells = r.repWells || r.reps.map(()=>'');
     const bioReps = r.repBioReps || r.reps.map(()=>'');
+    const mean = isExpression ? r.meanRE*100 : r.kd;
+    const se = isExpression ? r.seRE*100 : r.kdSe;
+    const metric = isExpression ? 'Expression' : 'KD';
     dotT.push({showlegend:false,x:r.reps.map(()=>categories[i]),
-      y:r.reps.map(v=>+((1-v)*100).toFixed(2)),
+      y:r.reps.map(value=>+((isExpression?value:1-value)*100).toFixed(2)),
       customdata:r.reps.map((_,j)=>({well:wells[j]||'',bio_rep:bioReps[j]||'',label:lbl})),
       mode:'markers',type:'scatter',
       marker:{size:9,color:colors[i],symbol:'circle-open',line:{width:2}},
-      hovertemplate:'<b>%{customdata.label}</b><br>KD: %{y:.2f}%<br>Well: %{customdata.well}<br>Bio-rep: %{customdata.bio_rep}<extra></extra>'});
-    dotT.push({showlegend:false,x:[categories[i],categories[i]],y:isNaN(r.kdSe)?[r.kd,r.kd]:[r.kd-r.kdSe,r.kd+r.kdSe],
+      hovertemplate:`<b>%{customdata.label}</b><br>${metric}: %{y:.2f}%<br>Well: %{customdata.well}<br>Bio-rep: %{customdata.bio_rep}<extra></extra>`});
+    dotT.push({showlegend:false,x:[categories[i],categories[i]],y:isNaN(se)?[mean,mean]:[mean-se,mean+se],
       mode:'lines',type:'scatter',line:{color:colors[i],width:4},hoverinfo:'skip'});
-    dotT.push({showlegend:false,x:[categories[i]],y:[r.kd],mode:'markers',type:'scatter',customdata:[{label:lbl}],
+    dotT.push({showlegend:false,x:[categories[i]],y:[mean],mode:'markers',type:'scatter',customdata:[{label:lbl}],
       marker:{size:13,color:colors[i],symbol:'diamond'},
-      hovertemplate:'<b>%{customdata.label}</b><br>Mean KD: %{y:.2f}%<extra></extra>'});
+      hovertemplate:`<b>%{customdata.label}</b><br>Mean ${metric}: %{y:.2f}%<extra></extra>`});
   });
+  return dotT;
+  }
   const dotAnnotations=allSorted.map((r,i)=>({x:categories[i],y:r.kd,xref:'x',yref:'y',
     text:r.kd.toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
-  Plotly.newPlot(plotDotId,dotT,{...CL,
+  if(isDot) Plotly.newPlot(plotBarId,buildDotTraces(false),{...CL,
     title:titleStyle('Individual Replicates — KD% (Mean ± SE)'),
     yaxis:{...axBase,title:{text:'KD Efficiency (%)',font:{size:12}}},
     annotations:dotAnnotations},{responsive:false});
@@ -3878,7 +3936,7 @@ function _renderChartSet(plotBarId, plotDotId, plotRelId, allSorted, isNTCArr, n
   const exprVals=allSorted.map(r=>+(r.meanRE*100).toFixed(2));
   const relAnnotations=labels.map((lbl,i)=>({x:categories[i],y:exprVals[i],xref:'x',yref:'y',
     text:exprVals[i].toFixed(1)+'%',showarrow:false,yshift:44,font:{size:13,color:'#475569'},xanchor:'center'}));
-  Plotly.newPlot(plotRelId,[
+  Plotly.newPlot(plotRelId,isDot?buildDotTraces(true):[
     {type:'bar',x:categories,y:exprVals,
      error_y:{type:'data',array:seExprPct,visible:true,thickness:1.5,width:4,color:'#475569'},
     marker:{color:colors,opacity:barOpacity,line:{color:'rgba(255,255,255,0.5)',width:1.5}},
@@ -3930,10 +3988,11 @@ function _buildChartFacetGroups(kdSlice, ntcSlice, mode, keyword){
     }));
   }
 
-  const term = String(keyword||'').trim().toLocaleLowerCase();
-  if(mode === 'keyword' && term){
-    const matches = kdSlice.filter(r=>String(r.siRNA||'').toLocaleLowerCase().includes(term));
-    const others = kdSlice.filter(r=>!String(r.siRNA||'').toLocaleLowerCase().includes(term));
+  const terms = parseFilterTerms(keyword);
+  if(mode === 'keyword' && terms.length){
+    const matchesKeyword = row=>terms.some(term=>String(row.siRNA||'').toLowerCase().includes(term));
+    const matches = kdSlice.filter(matchesKeyword);
+    const others = kdSlice.filter(row=>!matchesKeyword(row));
     return [
       {label:`Contains "${String(keyword).trim()}"`,kdSlice:matches},
       {label:'Other siRNAs',kdSlice:others}
@@ -3958,10 +4017,10 @@ function onChartFacetChange(){
     hint.textContent = mode === 'ntc'
       ? 'Each baseline siNTC gets its own chart set.'
       : mode === 'sample'
-        ? 'Each sample gets its own set of all three charts.'
+        ? 'Each sample gets its own chart set.'
       : keywordMode
         ? 'Matching siRNA names are grouped together; non-matches form a second group.'
-        : 'One chart set per selected plate, when applicable.';
+        : '';
   }
   if(analysisResult) renderCharts(currentFilteredKd || analysisResult.kdResults);
 }
@@ -3969,7 +4028,7 @@ function onChartFacetChange(){
 function renderCharts(kd){
   const refGene = (analysisResult&&analysisResult.refGene)||'';
   const activeMode=document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde';
-  const ntcData = showNTC ? (analysisResult?.ntcResults||[]).filter(row=>getPlateAnalysisMode(row)===activeMode) : [];
+  const ntcData = showNTC ? (analysisResult?.ntcResults||[]).filter(row=>includesPlateAnalysisMode(row,activeMode)) : [];
   const isPerPlate = !!(analysisResult&&analysisResult.isPerPlate);
   const plateLabels=analysisResult?.allPlateLabels?.length?analysisResult.allPlateLabels:(analysisResult?.singlePlateLabel?[analysisResult.singlePlateLabel]:[]);
 
@@ -3979,7 +4038,7 @@ function renderCharts(kd){
     ? (selectedPlates === null ? plateLabels : plateLabels.filter(p=>selectedPlates.includes(p)))
     : null;
 
-  ['figRelContainer','figBarContainer','figDotContainer'].forEach(id=>{
+  ['figRelContainer','figBarContainer'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.innerHTML='';
   });
@@ -4014,7 +4073,7 @@ function renderCharts(kd){
     if(chartSet.label) headings.push(chartSet.label);
     const heading = headings.filter(Boolean).join(' · ');
 
-    ['Rel','Bar','Dot'].forEach(type=>{
+    ['Rel','Bar'].forEach(type=>{
       const container = document.getElementById(`fig${type}Container`);
       if(!container) return;
       const section = document.createElement('div');
@@ -4025,7 +4084,7 @@ function renderCharts(kd){
     });
 
     _renderChartSet(
-      `plotBar_${suffix}`, `plotDot_${suffix}`, `plotRel_${suffix}`,
+      `plotBar_${suffix}`, `plotRel_${suffix}`,
       allSorted, isNTCArr, chartSet.ntcSlice, refGene, compactCharts
     );
   });
@@ -4043,6 +4102,9 @@ function toggleNTC(){
 
 /* Download all visible charts for a given type (Rel/Bar/Dot) */
 function downloadFigAll(type, suffix){
+  if(document.getElementById('chartStyle')?.value === 'dot'){
+    suffix = type === 'Rel' ? 'Expression_Dot' : 'KD_Dot';
+  }
   const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
   const base=resultFileStem||'Figure';
   const refSuffix=(currentResultRefGene||'HK').replace(/[^A-Za-z0-9._-]+/g,'_');
@@ -4141,7 +4203,8 @@ function exportPrismFig(chartId){
   const now=new Date().toISOString().slice(0,19)+'Z';
   const base=resultFileStem||'qPCR';
   const refSuffix=(currentResultRefGene || 'HK').replace(/[^A-Za-z0-9._-]+/g,'_');
-  const suffix=`${refSuffix}_${isRelChart?'Expression_NTC':chartId==='figDot'?'KD_Replicates':'KD_BarChart'}`;
+  const isDot = document.getElementById('chartStyle')?.value === 'dot';
+  const suffix=`${refSuffix}_${isRelChart?(isDot?'Expression_Dot':'Expression_NTC'):(isDot?'KD_Replicates':'KD_BarChart')}`;
   const yLabel=isRelChart?'Expression (relative to NTC)':'KD Efficiency (fraction)';
 
   const newUID=()=>crypto.randomUUID().toUpperCase();
@@ -4202,7 +4265,7 @@ function exportPrismFig(chartId){
   const activePlateLabels=activePlates||[''];
   const facetMode=document.getElementById('chartFacetMode')?.value||'none';
   const facetKeyword=document.getElementById('chartFacetKeyword')?.value||'';
-  const ntcRows=(analysisResult.ntcResults||[]).filter(row=>getPlateAnalysisMode(row)===(document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde'));
+  const ntcRows=(analysisResult.ntcResults||[]).filter(row=>includesPlateAnalysisMode(row,document.querySelector('#resGroup1 .tab-panel.active')?.id==='tabFC'?'matrix':'kde'));
   activePlateLabels.forEach(plateLabel=>{
     const kdSlice=plateLabel?kd.filter(row=>getPlateLabelForRow(row)===plateLabel):kd;
     const ntcSlice=plateLabel?ntcRows.filter(row=>getPlateLabelForRow(row)===plateLabel):ntcRows;
@@ -4265,7 +4328,7 @@ function downloadKDcsv(){
   if(!analysisResult) return;
   const fmtSE = v => isNaN(v)?'N/A':v.toFixed(4);
   const fmtSE2= v => isNaN(v)?'N/A':v.toFixed(2);
-  const kdRows = currentFilteredKDE || (currentFilteredKd||analysisResult.kdResults).filter(row=>getPlateAnalysisMode(row)==='kde');
+  const kdRows = currentFilteredKDE || (currentFilteredKd||analysisResult.kdResults).filter(row=>includesPlateAnalysisMode(row,'kde'));
   const hasPlate = kdRows.some(r => r.plate);
   const hasNtcRef = selectedNtcList.length > 1 || new Set(kdRows.map(r => r.ntcRefName).filter(Boolean)).size > 1;
   const headers = ['Housekeeping_Gene',...(hasPlate?['Plate']:[]),'siRNA',...(hasNtcRef?['Baseline_NTC']:[]),
@@ -4290,35 +4353,6 @@ function downloadDetailCsv(){
 }
 function makeCsv(headers,rows){
   return analysisCore.serializeCsv(headers,rows);
-}
-function downloadAnalysisMetadata(){
-  if(!analysisResult) return;
-  const metadata = analysisCore.buildAnalysisMetadata({
-    version:'1.5',
-    exportedAt:new Date().toISOString(),
-    sourceFiles:{
-      metadata:layoutFiles.map(item=>({name:item.file.name,plate:item.assignedPlate})),
-      results:resultFiles.map(item=>({name:item.file.name,plate:item.assignedPlate}))
-    },
-    referenceGenes:analysisResult.refGenes||[],
-    displayedReferenceGene:currentResultRefGene,
-    ntcTreatments:analysisResult.ntcTreatments||[],
-    ntcMode:isMultiPlate?ntcMode:'single-plate',
-    globalNtcPlate:ntcMode==='global'?(getDistinctPlateNumbers()[globalNtcPlateIdx]??null):null,
-    ntcSampleMapping:{...ntcSampleMapping},
-    sampleToGroup:{...sampleToGroup},
-    omittedWells:analysisResult.omittedWells||[],
-    technicalReplicateCtRangeWarning:Number(document.getElementById('techRepCtRange')?.value??1),
-    facetMode:document.getElementById('chartFacetMode')?.value||'none',
-    keyword:document.getElementById('chartFacetKeyword')?.value||''
-  });
-  const blob = new Blob([JSON.stringify(metadata,null,2)],{type:'application/json;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href=url;
-  link.download=`siRNA_analysis_settings_${(currentResultRefGene||'HK').replace(/[^A-Za-z0-9._-]+/g,'_')}.json`;
-  link.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function dl(text,name){
   const a=document.createElement('a');
